@@ -15,13 +15,55 @@ const settings = {
 (async () => {
   const stored = await chrome.storage.sync.get(settings);
   Object.assign(settings, stored);
-})();
 
-chrome.storage.onChanged.addListener(changes => {
-  for (const [key, { newValue }] of Object.entries(changes)) {
-    if (key in settings) settings[key] = newValue;
-  }
-});
+  document.addEventListener('contextmenu', e => {
+    lastRightClicked = (e.target && e.target.nodeType === Node.ELEMENT_NODE) ? e.target : document.activeElement;
+  }, true);
+
+  chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (msg.action === 'get-nav-path') {
+      if (!lastRightClicked) { showToast('Right-click an element first', true); sendResponse({}); return; }
+      const el = lastRightClicked;
+      lastRightClicked = null;
+      const text = formatPath(el, settings);
+      copyToClipboard(text).then(() => { highlightElement(el); showToast('Copied!'); logCopy('Copied', text); })
+        .catch(() => showToast('Clipboard failed', true));
+      sendResponse({ ok: true });
+    }
+
+    if (msg.action === 'get-url-path') {
+      if (!lastRightClicked) { showToast('Right-click an element first', true); sendResponse({}); return; }
+      const el = lastRightClicked;
+      lastRightClicked = null;
+      const text = location.href + ' | ' + formatPath(el, settings);
+      copyToClipboard(text).then(() => { highlightElement(el); showToast('Copied!'); logCopy('Copied URL + path', text); })
+        .catch(() => showToast('Clipboard failed', true));
+      sendResponse({ ok: true });
+    }
+
+    if (msg.action === 'get-all-testids') {
+      const map = getAllTestIds();
+      const text = formatAllTestIds(map);
+      copyToClipboard(text).then(() => {
+        const n = Object.keys(map).length;
+        showToast('Copied ' + n + ' testid' + (n !== 1 ? 's' : ''));
+        logCopy('Copied ' + n + ' testid' + (n !== 1 ? 's' : ''), text.slice(0, 80));
+      }).catch(() => showToast('Clipboard failed', true));
+      sendResponse({ ok: true });
+    }
+
+    if (msg.action === 'toggle-inspector') {
+      toggleInspector();
+      sendResponse({ ok: true });
+    }
+  });
+
+  chrome.storage.onChanged.addListener(changes => {
+    for (const [key, { newValue }] of Object.entries(changes)) {
+      if (key in settings) settings[key] = newValue;
+    }
+  });
+})();
 
 function copyToClipboard(text) {
   return new Promise((resolve, reject) => {
@@ -34,6 +76,7 @@ function copyToClipboard(text) {
 }
 
 function fallbackCopy(text, resolve, reject) {
+  if (!document.body) { reject(new Error('no body')); return; }
   const ta = document.createElement('textarea');
   ta.value = text;
   ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;';
@@ -66,6 +109,15 @@ function highlightElement(el) {
   }, 1200);
 }
 
+function showToast(msg, isError) {
+  if (!document.body) return;
+  const el = document.createElement('div');
+  el.textContent = msg;
+  el.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:2147483647;background:' + (isError ? '#dc2626' : '#1E3A5F') + ';color:#fff;font:13px/1.4 sans-serif;padding:8px 16px;border-radius:6px;box-shadow:0 2px 10px rgba(0,0,0,0.3);';
+  document.body.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 2000);
+}
+
 function logCopy(label, text) {
   const preview = text.length > 120 ? text.slice(0, 120) + '\u2026' : text;
   console.log(
@@ -76,6 +128,7 @@ function logCopy(label, text) {
 }
 
 function createTooltip() {
+  if (!document.body) return null;
   const d = document.createElement('div');
   d.id = 'ui-path-copy-tooltip';
   d.style.cssText = 'position:fixed;z-index:2147483647;pointer-events:none;background:#1E3A5F;color:#FFD700;font:12px/1.4 monospace;padding:5px 10px;border-radius:4px;max-width:520px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 2px 10px rgba(0,0,0,0.35);display:none;';
@@ -108,9 +161,10 @@ function onClickInspector(e) {
   if (!path) return;
   copyToClipboard(path).then(() => {
     highlightElement(el);
+    showToast('Copied!');
     logCopy('Inspector copied', path);
     toggleInspector(false);
-  });
+  }).catch(() => showToast('Clipboard failed', true));
 }
 
 function createModeIndicator() {
@@ -141,41 +195,4 @@ function toggleInspector(force) {
   }
 }
 
-document.addEventListener('contextmenu', e => { lastRightClicked = e.target; }, true);
 
-chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (msg.action === 'get-nav-path') {
-    if (!lastRightClicked) { alert('UI Path Copy: right-click an element first.'); sendResponse({}); return; }
-    const el = lastRightClicked;
-    lastRightClicked = null;
-    const text = formatPath(el, settings);
-    copyToClipboard(text).then(() => { highlightElement(el); logCopy('Copied', text); })
-      .catch(() => alert('UI Path Copy: clipboard failed.'));
-    sendResponse({ ok: true });
-  }
-
-  if (msg.action === 'get-url-path') {
-    if (!lastRightClicked) { alert('UI Path Copy: right-click an element first.'); sendResponse({}); return; }
-    const el = lastRightClicked;
-    lastRightClicked = null;
-    const text = location.href + ' | ' + formatPath(el, settings);
-    copyToClipboard(text).then(() => { highlightElement(el); logCopy('Copied URL + path', text); })
-      .catch(() => alert('UI Path Copy: clipboard failed.'));
-    sendResponse({ ok: true });
-  }
-
-  if (msg.action === 'get-all-testids') {
-    const map = getAllTestIds();
-    const text = formatAllTestIds(map);
-    copyToClipboard(text).then(() => {
-      const n = Object.keys(map).length;
-      logCopy('Copied ' + n + ' testid' + (n !== 1 ? 's' : ''), text.slice(0, 80));
-    }).catch(() => alert('UI Path Copy: clipboard failed.'));
-    sendResponse({ ok: true });
-  }
-
-  if (msg.action === 'toggle-inspector') {
-    toggleInspector();
-    sendResponse({ ok: true });
-  }
-});

@@ -68,11 +68,13 @@ Open `http://localhost:5175` in a browser with the extension installed.
 
 ## Install — Firefox
 
-1. Open **about:debugging**
-2. Click **This Firefox**
-3. Click **Load Temporary Add-on...**
-4. Select `firefox/manifest.json`
-5. Temporary add-ons are removed on restart (persistent install requires Mozilla signing)
+### Temporary (development)
+1. Open **about:debugging** → **This Firefox** → **Load Temporary Add-on...**
+2. Select `firefox/manifest.json`
+
+### Permanent (signed or unsigned)
+1. Set `xpinstall.signatures.required = false` in `about:config` (unsigned builds only)
+2. Open `ui-path-copy-firefox.xpi` directly — drag into Firefox or double-click
 
 ---
 
@@ -111,12 +113,12 @@ Duplicate files (`popup.html`, `popup.js`, `lib/path-builder.js`) are symlinked 
 
 ```
 Right-click element
-  → content.js stores target
+  → content.js stores target (also works in iframes)
   → context menu item clicked
-  → background.js routes to content script
+  → background.js routes to content script (forwards frameId)
   → content.js builds path in selected format
-  → clipboard write (Chrome: navigator.clipboard / Firefox: execCommand inject)
-  → highlight + console log
+  → content.js writes to clipboard via navigator.clipboard
+  → toast notification + highlight + console log
 ```
 
 ### Segment rules
@@ -127,7 +129,7 @@ Right-click element
 | Element is 2nd `<div>` among siblings | `div[2]` |
 | Element has `data-testignore` | Skipped (parent used) |
 
-The walk stops at `<body>` and has a 50-depth limit.
+The walk stops at `<body>` with a 25-depth limit (appends `...` if truncated).
 
 ### Chrome vs Firefox
 
@@ -135,8 +137,9 @@ The walk stops at `<body>` and has a 50-depth limit.
 |---|---|---|
 | Background | Service worker | Persistent page |
 | API | `chrome.*` | `browser.*` |
-| Clipboard | Content script writes directly | Background injects via `tabs.executeScript` |
-| Inspector mode | ✅ Full | ❌ (not supported) |
+| Message passing | Callback (`sendResponse`) | Promise (return `Promise`) |
+| Clipboard | Content script writes directly | Content script writes directly |
+| Inspector mode | ✅ Full | ✅ Full |
 | Manifest | `manifest.json` | `firefox/manifest.json` |
 
 ---

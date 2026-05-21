@@ -16,15 +16,23 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('shadowDom').addEventListener('change', e => api.storage.sync.set({ shadowDom: e.target.checked }));
   $('skipTestignore').addEventListener('change', e => api.storage.sync.set({ skipTestignore: e.target.checked }));
 
-  $('copyAll').addEventListener('click', async () => {
-    const [tab] = await api.tabs.query({ active: true, currentWindow: true });
-    api.tabs.sendMessage(tab.id, { action: 'get-all-testids' });
-    window.close();
-  });
+  function showStatus(msg) {
+    const el = $('status');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
 
-  $('toggleInspector').addEventListener('click', async () => {
+  async function sendToTab(msg) {
     const [tab] = await api.tabs.query({ active: true, currentWindow: true });
-    api.tabs.sendMessage(tab.id, { action: 'toggle-inspector' });
-    window.close();
-  });
+    try {
+      await api.tabs.sendMessage(tab.id, msg);
+      window.close();
+    } catch (err) {
+      showStatus('Content script not loaded on this page');
+    }
+  }
+
+  $('copyAll').addEventListener('click', () => sendToTab({ action: 'get-all-testids' }));
+
+  $('toggleInspector').addEventListener('click', () => sendToTab({ action: 'toggle-inspector' }));
 });

@@ -15,13 +15,97 @@ const settings = {
 (async () => {
   const stored = await browser.storage.sync.get(settings);
   Object.assign(settings, stored);
+
+  // ─── Right-click ────────────────────────────────────
+
+  document.addEventListener('contextmenu', e => {
+    lastRightClicked = (e.target && e.target.nodeType === Node.ELEMENT_NODE) ? e.target : document.activeElement;
+  }, true);
+
+  // ─── Message Handler ────────────────────────────────
+
+  browser.runtime.onMessage.addListener((msg) => {
+    if (msg.action === 'get-nav-path') {
+      if (!lastRightClicked) return Promise.resolve({ error: 'no element' });
+      const el = lastRightClicked;
+      lastRightClicked = null;
+      const text = formatPath(el, settings);
+      return copyToClipboard(text).then(() => {
+        highlightElement(el);
+        showToast('Copied!');
+        logCopy('Copied', text);
+        return { ok: true };
+      }).catch(() => {
+        showToast('Clipboard failed', true);
+        return { ok: false };
+      });
+    }
+
+    if (msg.action === 'get-url-path') {
+      if (!lastRightClicked) return Promise.resolve({ error: 'no element' });
+      const el = lastRightClicked;
+      lastRightClicked = null;
+      const text = location.href + ' | ' + formatPath(el, settings);
+      return copyToClipboard(text).then(() => {
+        highlightElement(el);
+        showToast('Copied!');
+        logCopy('Copied URL + path', text);
+        return { ok: true };
+      }).catch(() => {
+        showToast('Clipboard failed', true);
+        return { ok: false };
+      });
+    }
+
+    if (msg.action === 'get-all-testids') {
+      const map = getAllTestIds();
+      const text = formatAllTestIds(map);
+      return copyToClipboard(text).then(() => {
+        const n = Object.keys(map).length;
+        showToast('Copied ' + n + ' testid' + (n !== 1 ? 's' : ''));
+        logCopy('Copied ' + n + ' testid' + (n !== 1 ? 's' : ''), text.slice(0, 80));
+        return { ok: true };
+      }).catch(() => {
+        showToast('Clipboard failed', true);
+        return { ok: false };
+      });
+    }
+
+    if (msg.action === 'toggle-inspector') {
+      toggleInspector();
+      return Promise.resolve({});
+    }
+  });
+
+  browser.storage.onChanged.addListener(changes => {
+    for (const [key, { newValue }] of Object.entries(changes)) {
+      if (key in settings) settings[key] = newValue;
+    }
+  });
 })();
 
-browser.storage.onChanged.addListener(changes => {
-  for (const [key, { newValue }] of Object.entries(changes)) {
-    if (key in settings) settings[key] = newValue;
-  }
-});
+function copyToClipboard(text) {
+  return new Promise((resolve, reject) => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(resolve).catch(() => fallbackCopy(text, resolve, reject));
+    } else {
+      fallbackCopy(text, resolve, reject);
+    }
+  });
+}
+
+function fallbackCopy(text, resolve, reject) {
+  if (!document.body) { reject(new Error('no body')); return; }
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  try { document.execCommand('copy'); resolve(); }
+  catch { reject(); }
+  finally { document.body.removeChild(ta); }
+}
 
 function highlightElement(el) {
   if (!settings.highlight) return;
@@ -44,6 +128,15 @@ function highlightElement(el) {
   }, 1200);
 }
 
+function showToast(msg, isError) {
+  if (!document.body) return;
+  const el = document.createElement('div');
+  el.textContent = msg;
+  el.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:2147483647;background:' + (isError ? '#dc2626' : '#1E3A5F') + ';color:#fff;font:13px/1.4 sans-serif;padding:8px 16px;border-radius:6px;box-shadow:0 2px 10px rgba(0,0,0,0.3);';
+  document.body.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 2000);
+}
+
 function logCopy(label, text) {
   const preview = text.length > 120 ? text.slice(0, 120) + '\u2026' : text;
   console.log(
@@ -56,6 +149,7 @@ function logCopy(label, text) {
 // ─── Inspector / Overlay ────────────────────────────
 
 function createTooltip() {
+  if (!document.body) return null;
   const d = document.createElement('div');
   d.id = 'ui-path-copy-tooltip';
   d.style.cssText = 'position:fixed;z-index:2147483647;pointer-events:none;background:#1E3A5F;color:#FFD700;font:12px/1.4 monospace;padding:5px 10px;border-radius:4px;max-width:520px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 2px 10px rgba(0,0,0,0.35);display:none;';
@@ -87,10 +181,12 @@ function onClickInspector(e) {
   const path = formatPath(el, settings);
   if (!path) return;
 
-  browser.runtime.sendMessage({ action: 'inspector-copy', path });
-  highlightElement(el);
-  logCopy('Inspector copied', path);
-  toggleInspector(false);
+  copyToClipboard(path).then(() => {
+    highlightElement(el);
+    showToast('Copied!');
+    logCopy('Inspector copied', path);
+    toggleInspector(false);
+  }).catch(() => showToast('Clipboard failed', true));
 }
 
 function createModeIndicator() {
@@ -121,39 +217,4 @@ function toggleInspector(force) {
   }
 }
 
-// ─── Right-click ────────────────────────────────────
 
-document.addEventListener('contextmenu', e => { lastRightClicked = e.target; }, true);
-
-// ─── Message Handler ────────────────────────────────
-
-browser.runtime.onMessage.addListener((msg) => {
-  if (msg.action === 'get-nav-path') {
-    if (!lastRightClicked) return Promise.resolve({ error: 'no element' });
-    const el = lastRightClicked;
-    lastRightClicked = null;
-    const text = formatPath(el, settings);
-    highlightElement(el);
-    return Promise.resolve({ path: text, url: location.href });
-  }
-
-  if (msg.action === 'get-url-path') {
-    if (!lastRightClicked) return Promise.resolve({ error: 'no element' });
-    const el = lastRightClicked;
-    lastRightClicked = null;
-    const text = location.href + ' | ' + formatPath(el, settings);
-    highlightElement(el);
-    return Promise.resolve({ path: text, url: location.href });
-  }
-
-  if (msg.action === 'get-all-testids') {
-    const map = getAllTestIds();
-    const text = formatAllTestIds(map);
-    return Promise.resolve({ path: text });
-  }
-
-  if (msg.action === 'toggle-inspector') {
-    toggleInspector();
-    return Promise.resolve({});
-  }
-});
