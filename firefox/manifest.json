@@ -22,7 +22,6 @@
     }
   ],
   "browser_action": {
-    "default_popup": "popup.html",
     "default_title": "copy-test-path"
   },
   "browser_specific_settings": {

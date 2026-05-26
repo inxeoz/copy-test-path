@@ -11,6 +11,10 @@ function createContextMenus() {
 browser.runtime.onInstalled.addListener(createContextMenus);
 createContextMenus();
 
+browser.browserAction.onClicked.addListener(() => {
+  browser.tabs.create({ url: 'popup.html' });
+});
+
 browser.contextMenus.onClicked.addListener((info, tab) => {
   const actionMap = {
     'copy-nav-path': 'get-nav-path',

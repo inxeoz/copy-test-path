@@ -16,9 +16,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('shadowDom').addEventListener('change', e => api.storage.sync.set({ shadowDom: e.target.checked }));
   $('skipTestignore').addEventListener('change', e => api.storage.sync.set({ skipTestignore: e.target.checked }));
 
-  function showStatus(msg) {
+  function showStatus(msg, type) {
     const el = $('status');
     el.textContent = msg;
+    el.className = type;
     el.style.display = 'block';
   }
 
@@ -26,9 +27,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const [tab] = await api.tabs.query({ active: true, currentWindow: true });
     try {
       await api.tabs.sendMessage(tab.id, msg);
-      window.close();
+      showStatus('Done!', 'success');
     } catch (err) {
-      showStatus('Content script not loaded on this page');
+      showStatus('Content script not loaded on this page', 'error');
     }
   }
 

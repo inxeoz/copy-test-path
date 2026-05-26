@@ -24,7 +24,6 @@
     }
   ],
   "action": {
-    "default_popup": "popup.html",
     "default_title": "copy-test-path"
   }
 }

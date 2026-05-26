@@ -2,58 +2,107 @@
 <html>
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-  body { width: 280px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 14px; margin: 0; font-size: 13px; color: #1e293b; }
-  h1 { font-size: 15px; color: #1E3A5F; margin: 0 0 14px; }
-  label { display: block; font-size: 12px; margin: 6px 0 2px; color: #475569; }
-  select, button { width: 100%; padding: 7px 8px; margin: 3px 0; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 5px; font-size: 13px; background: #fff; }
-  select:focus { outline: none; border-color: #1E3A5F; }
-  button.primary { background: #1E3A5F; color: #FFD700; border: none; font-weight: 600; cursor: pointer; }
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    margin: 0;
+    min-height: 100vh;
+    background: #f1f5f9;
+    color: #1e293b;
+    font-size: 14px;
+    display: flex;
+    justify-content: center;
+    padding: 40px 16px;
+  }
+  .container {
+    max-width: 520px;
+    width: 100%;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+    padding: 28px 32px;
+    align-self: flex-start;
+  }
+  h1 {
+    font-size: 20px;
+    color: #1E3A5F;
+    margin: 0 0 4px;
+  }
+  .sub {
+    color: #64748b;
+    font-size: 13px;
+    margin: 0 0 20px;
+  }
+  label { display: block; font-size: 12px; margin: 6px 0 2px; color: #475569; font-weight: 500; }
+  select, button { width: 100%; padding: 8px 12px; margin: 3px 0; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; background: #fff; }
+  select:focus { outline: none; border-color: #1E3A5F; box-shadow: 0 0 0 2px rgba(30,58,95,.15); }
+  button.primary {
+    background: #1E3A5F;
+    color: #FFD700;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s;
+  }
   button.primary:hover { background: #2a5070; }
   button.primary:active { background: #16304a; }
-  hr { border: none; border-top: 1px solid #e2e8f0; margin: 12px 0; }
-  .row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; }
-  .row label { margin: 0; cursor: pointer; }
-  .version { color: #94a3b8; font-size: 10px; text-align: center; margin-top: 10px; }
-  .badge { display: inline-block; background: #e2e8f0; color: #475569; font-size: 10px; padding: 1px 6px; border-radius: 3px; margin-left: 4px; }
-  #status { color: #dc2626; font-size: 12px; margin: 8px 0; display: none; word-wrap: break-word; }
+  button.primary:disabled { opacity: .5; cursor: not-allowed; }
+  hr { border: none; border-top: 1px solid #e2e8f0; margin: 16px 0; }
+  .row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; }
+  .row label { margin: 0; cursor: pointer; font-weight: 400; }
+  .version { color: #94a3b8; font-size: 11px; text-align: center; margin-top: 16px; }
+  #status {
+    padding: 10px 14px;
+    border-radius: 6px;
+    margin: 10px 0 0;
+    font-size: 13px;
+    display: none;
+    word-wrap: break-word;
+  }
+  #status.success { display: block; background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+  #status.error { display: block; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
 </style>
 </head>
 <body>
 
-<h1>copy-test-path</h1>
+<div class="container">
+  <h1>copy-test-path</h1>
+  <p class="sub">Right-click any element and copy its selector path, or configure defaults below.</p>
 
-<label for="format">Output format:</label>
-<select id="format">
-  <option value="playwright-path">Playwright path (tag[n] + testid)</option>
-  <option value="css-selector">CSS selector (nth-of-type)</option>
-  <option value="xpath">XPath</option>
-  <option value="test-snippet">Playwright snippet</option>
-</select>
+  <label for="format">Output format:</label>
+  <select id="format">
+    <option value="playwright-path">Playwright path (tag[n] + testid)</option>
+    <option value="css-selector">CSS selector (nth-of-type)</option>
+    <option value="xpath">XPath</option>
+    <option value="test-snippet">Playwright snippet</option>
+  </select>
 
-<hr>
+  <hr>
 
-<div class="row">
-  <label for="highlight">Highlight on copy</label>
-  <input type="checkbox" id="highlight" checked>
+  <div class="row">
+    <label for="highlight">Highlight on copy</label>
+    <input type="checkbox" id="highlight" checked>
+  </div>
+  <div class="row">
+    <label for="shadowDom">Traverse shadow DOM</label>
+    <input type="checkbox" id="shadowDom" checked>
+  </div>
+  <div class="row">
+    <label for="skipTestignore">Skip <code>data-testignore</code></label>
+    <input type="checkbox" id="skipTestignore" checked>
+  </div>
+
+  <hr>
+
+  <button class="primary" id="copyAll">Copy All testids on Page</button>
+  <button class="primary" id="toggleInspector">Toggle Inspector Mode</button>
+
+  <div id="status"></div>
+
+  <div class="version">v2.0.0</div>
 </div>
-<div class="row">
-  <label for="shadowDom">Traverse shadow DOM</label>
-  <input type="checkbox" id="shadowDom" checked>
-</div>
-<div class="row">
-  <label for="skipTestignore">Skip <code>data-testignore</code></label>
-  <input type="checkbox" id="skipTestignore" checked>
-</div>
-
-<hr>
-
-<button class="primary" id="copyAll">Copy All testids on Page</button>
-<button class="primary" id="toggleInspector">Toggle Inspector Mode</button>
-
-<div id="status"></div>
-
-<div class="version">v2.0.0</div>
 
 <script src="popup.js"></script>
 </body>

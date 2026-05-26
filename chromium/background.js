@@ -11,6 +11,10 @@ function createContextMenus() {
 chrome.runtime.onInstalled.addListener(createContextMenus);
 createContextMenus();
 
+chrome.action.onClicked.addListener(() => {
+  chrome.tabs.create({ url: 'popup.html' });
+});
+
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   const action = {
     'copy-nav-path': 'get-nav-path',
