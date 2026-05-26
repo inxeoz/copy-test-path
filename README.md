@@ -1,4 +1,4 @@
-# UI Path Copy
+# copy-test-path
 
 A browser extension for Chrome and Firefox. Right-click any element to copy its DOM path for E2E tests — Playwright, Cypress, or raw CSS/XPath selectors.
 
@@ -74,7 +74,7 @@ Open `http://localhost:5175` in a browser with the extension installed.
 
 ### Permanent (signed or unsigned)
 1. Set `xpinstall.signatures.required = false` in `about:config` (unsigned builds only)
-2. Open `ui-path-copy-firefox.xpi` directly — drag into Firefox or double-click
+2. Open `copy-test-path-firefox.xpi` directly — drag into Firefox or double-click
 
 ---
 

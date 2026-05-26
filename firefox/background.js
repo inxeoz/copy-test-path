@@ -22,5 +22,5 @@ browser.contextMenus.onClicked.addListener((info, tab) => {
   if (!action) return;
 
   browser.tabs.sendMessage(tab.id, { action }, { frameId: info.frameId })
-    .catch(err => console.warn('UI Path Copy:', err.message));
+    .catch(err => console.warn('copy-test-path:', err.message));
 });

@@ -20,7 +20,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   }[info.menuItemId];
   if (action) {
     chrome.tabs.sendMessage(tab.id, { action }, { frameId: info.frameId }, () => {
-      if (chrome.runtime.lastError) console.warn('UI Path Copy:', chrome.runtime.lastError.message);
+      if (chrome.runtime.lastError) console.warn('copy-test-path:', chrome.runtime.lastError.message);
     });
   }
 });

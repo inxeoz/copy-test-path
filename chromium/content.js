@@ -121,7 +121,7 @@ function showToast(msg, isError) {
 function logCopy(label, text) {
   const preview = text.length > 120 ? text.slice(0, 120) + '\u2026' : text;
   console.log(
-    '%cUI Path Copy%c ' + label + ': ' + preview,
+    '%ccopy-test-path%c ' + label + ': ' + preview,
     'background:#1E3A5F;color:#FFD700;padding:2px 6px;border-radius:4px;font-weight:700;',
     'color:#0f172a;'
   );
