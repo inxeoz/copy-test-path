@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>copy-test-path</title>
+<link rel="stylesheet" href="css/theme.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--surface-1);
+    font-family: var(--font-family);
+    font-size: var(--font-size);
+    color: var(--ink-1);
+  }
+
+  /* ── Topbar ── */
+  .topbar {
+    background: var(--accent-surface);
+    padding: 0 28px;
+    height: 54px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.18);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .brand { display: flex; align-items: center; gap: 11px; }
+
+  .brand-icon {
+    width: 30px; height: 30px;
+    background: rgba(255,215,0,0.12);
+    border: 1px solid rgba(255,215,0,0.25);
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; color: #FFD700; flex-shrink: 0;
+  }
+
+  .brand-name {
+    font-size: 15px; font-weight: 700; color: #FFD700; letter-spacing: -0.2px;
+  }
+
+  .brand-desc { font-size: 11px; color: rgba(255,215,0,0.5); margin-top: 1px; }
+
+  .btn-icon {
+    width: 30px; height: 30px;
+    background: rgba(255,215,0,0.1);
+    border: 1px solid rgba(255,215,0,0.2);
+    border-radius: 6px; color: rgba(255,215,0,0.8);
+    cursor: pointer; font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .btn-icon:hover { background: rgba(255,215,0,0.2); border-color: rgba(255,215,0,0.45); }
+
+  /* ── Layout ── */
+  .container { max-width: 760px; margin: 0 auto; padding: 28px 20px 52px; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+
+  /* ── Card ── */
+  .card {
+    background: var(--card-surface);
+    border-radius: var(--card-radius);
+    box-shadow: var(--card-shadow);
+    border: 1px solid var(--border-1);
+    overflow: hidden;
+  }
+
+  .card-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px 0;
+  }
+
+  .card-title {
+    font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.9px;
+    color: var(--ink-3); margin: 0;
+  }
+
+  .card-body { padding: 14px 18px 18px; }
+
+  /* ── Form ── */
+  .field-label {
+    display: block; font-size: var(--font-size-smaller);
+    font-weight: 500; color: var(--ink-3); margin-bottom: 5px;
+  }
+
+  select {
+    width: 100%; padding: 7px 28px 7px 10px;
+    border: 1px solid var(--input-border);
+    border-radius: var(--input-radius);
+    font-size: var(--font-size); font-family: inherit;
+    background: var(--surface-0); color: var(--ink-1);
+    transition: border-color 0.15s, box-shadow 0.15s;
+    cursor: pointer; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center;
+  }
+
+  select:focus {
+    outline: none;
+    border-color: var(--input-focus-border);
+    box-shadow: 0 0 0 2px var(--input-focus-shadow);
+  }
+
+  .divider { height: 1px; background: var(--border-1); margin: 13px 0; }
+
+  /* ── Toggle switch ── */
+  .toggle-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0; border-bottom: 1px solid var(--border-1);
+  }
+
+  .toggle-row:last-child { border-bottom: none; }
+
+  .toggle-row > label:first-child {
+    font-size: var(--font-size-smaller); color: var(--ink-1);
+    cursor: pointer; margin: 0;
+  }
+
+  .toggle {
+    position: relative; display: inline-block;
+    width: 34px; height: 19px; flex-shrink: 0;
+  }
+
+  .toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+
+  .toggle .knob {
+    position: absolute; inset: 0;
+    border-radius: 10px; background: var(--border-2);
+    cursor: pointer; transition: background 0.2s;
+  }
+
+  .toggle .knob::before {
+    content: '';
+    position: absolute;
+    width: 13px; height: 13px;
+    left: 3px; top: 3px;
+    border-radius: 50%; background: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    transition: transform 0.2s;
+  }
+
+  .toggle input:checked + .knob { background: var(--button-surface); }
+  .toggle input:checked + .knob::before { transform: translateX(15px); }
+
+  /* ── Action buttons ── */
+  .btn-action {
+    display: flex; align-items: center; gap: 9px;
+    width: 100%; padding: 9px 13px;
+    border: none; border-radius: 8px;
+    font-size: var(--font-size); font-family: inherit; font-weight: 600;
+    cursor: pointer; text-align: left;
+    background: var(--button-surface); color: var(--button-ink);
+    transition: background 0.15s, transform 0.1s;
+    margin-bottom: 8px;
+  }
+
+  .btn-action:last-of-type { margin-bottom: 0; }
+  .btn-action:hover { background: var(--button-hover-surface); }
+  .btn-action:active { background: var(--button-active-surface); transform: translateY(1px); }
+  .btn-action:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .btn-action-icon {
+    width: 22px; height: 22px; border-radius: 5px;
+    background: rgba(255,215,0,0.15);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; flex-shrink: 0;
+  }
+
+  /* ── Tab source hint ── */
+  .tab-hint {
+    display: flex; align-items: center; gap: 7px;
+    font-size: var(--font-size-xsmall); color: var(--ink-3);
+    background: var(--surface-1); border: 1px solid var(--border-1);
+    border-radius: 6px; padding: 6px 10px; margin-bottom: 12px;
+    overflow: hidden;
+  }
+
+  .tab-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--border-2); flex-shrink: 0;
+    transition: background 0.3s;
+  }
+
+  .tab-hint.connected .tab-dot { background: #22c55e; }
+
+  .tab-url {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-family: var(--monospace-family); color: var(--ink-3);
+  }
+
+  /* ── Status ── */
+  #status {
+    margin-top: 10px; padding: 7px 11px;
+    border-radius: 6px; font-size: var(--font-size-smaller);
+    display: none;
+  }
+
+  #status.success {
+    display: block;
+    background: var(--success-surface); color: var(--success-ink);
+    border: 1px solid var(--success-border);
+  }
+
+  #status.error {
+    display: block;
+    background: var(--error-surface); color: var(--error-ink);
+    border: 1px solid var(--error-border);
+  }
+
+  /* ── History ── */
+  .btn-text {
+    background: none; border: none;
+    color: var(--ink-4); font-size: var(--font-size-xsmall);
+    cursor: pointer; padding: 3px 8px; border-radius: 4px;
+    font-family: inherit; font-weight: 500;
+    transition: color 0.15s, background 0.15s;
+  }
+
+  .btn-text:hover { color: var(--error-ink); background: var(--error-surface); }
+
+  .history-empty {
+    text-align: center; padding: 40px 24px;
+    color: var(--ink-4); font-size: var(--font-size-smaller); line-height: 1.7;
+  }
+
+  .history-list { padding: 2px 0; }
+
+  .history-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 18px; border-bottom: 1px solid var(--border-1);
+    transition: background 0.1s;
+  }
+
+  .history-item:last-child { border-bottom: none; }
+  .history-item:hover { background: var(--surface-1); }
+
+  .history-badge {
+    flex-shrink: 0; margin-top: 2px;
+    font-size: 9px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.4px;
+    padding: 2px 6px; border-radius: 3px;
+    background: var(--surface-2); color: var(--ink-3);
+    white-space: nowrap;
+  }
+
+  .history-path {
+    flex: 1; min-width: 0;
+    font-family: var(--monospace-family);
+    font-size: var(--font-size-xsmall); color: var(--ink-2);
+    word-break: break-all; line-height: 1.55;
+  }
+
+  .history-meta {
+    flex-shrink: 0;
+    display: flex; flex-direction: column; align-items: flex-end; gap: 5px;
+    padding-top: 1px;
+  }
+
+  .history-time { font-size: 10px; color: var(--ink-4); white-space: nowrap; }
+
+  .btn-copy {
+    background: none; border: 1px solid var(--border-1);
+    border-radius: 4px; color: var(--ink-4);
+    font-size: 10px; font-weight: 600; padding: 2px 8px;
+    cursor: pointer; white-space: nowrap; font-family: inherit;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+  }
+
+  .btn-copy:hover {
+    border-color: var(--button-surface);
+    color: var(--button-surface); background: var(--surface-1);
+  }
+
+  .btn-copy.copied {
+    border-color: var(--success-ink);
+    color: var(--success-ink); background: var(--success-surface);
+  }
+
+  /* ── Footer ── */
+  footer {
+    text-align: center; padding: 0 0 32px;
+    font-size: var(--font-size-xsmall); color: var(--ink-4);
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-icon">&#9881;</div>
+    <div>
+      <div class="brand-name" data-i18n="popupTitle"></div>
+      <div class="brand-desc" data-i18n="extDescription"></div>
+    </div>
+  </div>
+  <button class="btn-icon" id="darkToggle" title="Toggle dark mode">&#9680;</button>
+</header>
+
+<main class="container">
+  <div class="grid">
+
+    <!-- Settings card -->
+    <div class="card">
+      <div class="card-head">
+        <p class="card-title">Settings</p>
+      </div>
+      <div class="card-body">
+        <label class="field-label" for="format" data-i18n="formatLabel"></label>
+        <select id="format">
+          <option value="playwright-path" data-i18n="formatPlaywrightPath"></option>
+          <option value="css-selector"    data-i18n="formatCssSelector"></option>
+          <option value="xpath"           data-i18n="formatXPath"></option>
+          <option value="test-snippet"    data-i18n="formatTestSnippet"></option>
+        </select>
+
+        <div style="margin-top:10px;">
+          <label class="field-label" for="pathDepth" data-i18n="pathDepthLabel"></label>
+          <select id="pathDepth">
+            <option value="all">All segments</option>
+            <option value="1">1 — element only</option>
+            <option value="2">2 — element + 1 ancestor</option>
+            <option value="3">3 — element + 2 ancestors</option>
+            <option value="4">4 — element + 3 ancestors</option>
+            <option value="5">5 — element + 4 ancestors</option>
+          </select>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="toggle-row">
+          <label for="highlight" data-i18n="highlightLabel"></label>
+          <label class="toggle">
+            <input type="checkbox" id="highlight" checked>
+            <span class="knob"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <label for="shadowDom" data-i18n="shadowDomLabel"></label>
+          <label class="toggle">
+            <input type="checkbox" id="shadowDom" checked>
+            <span class="knob"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <label for="skipTestignore" data-i18n="skipTestignoreLabel"></label>
+          <label class="toggle">
+            <input type="checkbox" id="skipTestignore" checked>
+            <span class="knob"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions card -->
+    <div class="card">
+      <div class="card-head">
+        <p class="card-title">Actions</p>
+      </div>
+      <div class="card-body">
+        <div class="tab-hint" id="tabHint">
+          <span class="tab-dot"></span>
+          <span class="tab-url">No source tab — open via extension icon</span>
+        </div>
+        <button class="btn-action" id="pickElement">
+          <span class="btn-action-icon">&#9654;</span>
+          <span data-i18n="pickElementButton"></span>
+        </button>
+        <button class="btn-action" id="copyAll">
+          <span class="btn-action-icon">#</span>
+          <span data-i18n="copyAllButton"></span>
+        </button>
+        <button class="btn-action" id="toggleInspector">
+          <span class="btn-action-icon">&#128269;</span>
+          <span data-i18n="inspectorButton"></span>
+        </button>
+        <div id="status"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- History card -->
+  <div class="card">
+    <div class="card-head">
+      <p class="card-title">Recent paths</p>
+      <button class="btn-text" id="clearHistory">Clear all</button>
+    </div>
+    <div id="history"></div>
+  </div>
+</main>
+
+<footer>v3.1.0</footer>
+
+<script src="page.js" type="module"></script>
+</body>
+</html>

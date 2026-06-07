@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "copy-test-path",
-  "version": "2.0.0",
+  "version": "3.1.0",
   "description": "Right-click any element to copy its selector path for E2E tests",
   "permissions": [
     "contextMenus",

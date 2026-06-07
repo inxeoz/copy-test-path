@@ -1,8 +1,9 @@
 {
   "manifest_version": 2,
-  "name": "copy-test-path",
-  "version": "3.0.0",
-  "description": "Right-click any element to copy its selector path for E2E tests",
+  "name": "__MSG_extName__",
+  "version": "3.1.0",
+  "default_locale": "en",
+  "description": "__MSG_extDescription__",
   "permissions": [
     "contextMenus",
     "clipboardWrite",
@@ -17,12 +18,23 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["lib/path-builder.js", "content.js"],
+      "js": [
+        "lib/path-builder.js",
+        "js/log.js",
+        "js/clipboard.js",
+        "js/toast.js",
+        "js/highlight.js",
+        "js/settings.js",
+        "js/broadcast.js",
+        "js/history.js",
+        "js/inspector.js",
+        "content.js"
+      ],
       "run_at": "document_end"
     }
   ],
   "browser_action": {
-    "default_title": "copy-test-path"
+    "default_title": "__MSG_extName__"
   },
   "browser_specific_settings": {
     "gecko": {

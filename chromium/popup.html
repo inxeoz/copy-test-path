@@ -3,107 +3,253 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="css/theme.css">
 <style>
   *, *::before, *::after { box-sizing: border-box; }
+  html { background: transparent; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: var(--font-family);
+    font-size: var(--font-size);
+    color: var(--ink-1);
     margin: 0;
-    min-height: 100vh;
-    background: #f1f5f9;
-    color: #1e293b;
-    font-size: 14px;
+    padding: 0;
+    background: var(--card-surface);
+    width: var(--popup-width);
+    min-height: 100px;
+  }
+  .pane { padding: var(--popup-padding); }
+  .header {
     display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .header-icon {
+    width: 28px;
+    height: 28px;
+    background: var(--accent-surface);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
     justify-content: center;
-    padding: 40px 16px;
+    font-size: 16px;
+    color: var(--color-icon, var(--accent-ink-alt));
+    flex-shrink: 0;
   }
-  .container {
-    max-width: 520px;
+  .header-text { flex: 1; }
+  .header h1 {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0;
+    color: var(--ink-1);
+  }
+  .header .sub {
+    font-size: var(--font-size-smaller);
+    color: var(--ink-3);
+    margin: 1px 0 0;
+  }
+  .section {
+    margin-bottom: 14px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border-1);
+  }
+  .section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+    padding: 4px 0;
+    color: var(--ink-3);
+    font-size: var(--font-size-smaller);
+    font-weight: 500;
+  }
+  .section-header:hover { color: var(--ink-1); }
+  .section-header .arrow {
+    transition: transform 0.15s;
+    font-size: 10px;
+  }
+  body:not([data-more*="a"]) [data-more="a"] .section-header .arrow { transform: rotate(-90deg); }
+  body:not([data-more*="b"]) [data-more="b"] .section-header .arrow { transform: rotate(-90deg); }
+  body:not([data-more*="a"]) [data-more="a"] .section-body { display: none; }
+  body:not([data-more*="b"]) [data-more="b"] .section-body { display: none; }
+  label {
+    display: block;
+    font-size: var(--font-size-smaller);
+    margin-bottom: 3px;
+    color: var(--ink-3);
+    font-weight: 500;
+  }
+  select, button {
     width: 100%;
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
-    padding: 28px 32px;
-    align-self: flex-start;
+    padding: 7px 10px;
+    border: 1px solid var(--input-border);
+    border-radius: var(--input-radius);
+    font-size: var(--font-size);
+    font-family: inherit;
+    background: var(--surface-0);
+    color: var(--ink-1);
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
-  h1 {
-    font-size: 20px;
-    color: #1E3A5F;
-    margin: 0 0 4px;
+  select:focus {
+    outline: none;
+    border-color: var(--input-focus-border);
+    box-shadow: 0 0 0 2px var(--input-focus-shadow);
   }
-  .sub {
-    color: #64748b;
-    font-size: 13px;
-    margin: 0 0 20px;
-  }
-  label { display: block; font-size: 12px; margin: 6px 0 2px; color: #475569; font-weight: 500; }
-  select, button { width: 100%; padding: 8px 12px; margin: 3px 0; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; background: #fff; }
-  select:focus { outline: none; border-color: #1E3A5F; box-shadow: 0 0 0 2px rgba(30,58,95,.15); }
   button.primary {
-    background: #1E3A5F;
-    color: #FFD700;
+    background: var(--button-surface);
+    color: var(--button-ink);
     border: none;
     font-weight: 600;
     cursor: pointer;
-    transition: background .15s;
+    transition: background 0.15s;
   }
-  button.primary:hover { background: #2a5070; }
-  button.primary:active { background: #16304a; }
-  button.primary:disabled { opacity: .5; cursor: not-allowed; }
-  hr { border: none; border-top: 1px solid #e2e8f0; margin: 16px 0; }
-  .row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; }
-  .row label { margin: 0; cursor: pointer; font-weight: 400; }
-  .version { color: #94a3b8; font-size: 11px; text-align: center; margin-top: 16px; }
+  button.primary:hover { background: var(--button-hover-surface); }
+  button.primary:active { background: var(--button-active-surface); }
+  button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  button.primary + button.primary { margin-top: 6px; }
+  .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+  }
+  .row label {
+    margin: 0;
+    cursor: pointer;
+    font-weight: 400;
+    color: var(--ink-1);
+  }
+  input[type="checkbox"] {
+    accent-color: var(--accent-surface);
+  }
   #status {
-    padding: 10px 14px;
-    border-radius: 6px;
-    margin: 10px 0 0;
-    font-size: 13px;
+    padding: 8px 12px;
+    border-radius: var(--input-radius);
+    margin-top: 10px;
+    font-size: var(--font-size-smaller);
     display: none;
     word-wrap: break-word;
   }
-  #status.success { display: block; background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
-  #status.error { display: block; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+  #status.success {
+    display: block;
+    background: var(--success-surface);
+    color: var(--success-ink);
+    border: 1px solid var(--success-border);
+  }
+  #status.error {
+    display: block;
+    background: var(--error-surface);
+    color: var(--error-ink);
+    border: 1px solid var(--error-border);
+  }
+  .footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-1);
+  }
+  .version {
+    color: var(--ink-4);
+    font-size: var(--font-size-xsmall);
+  }
+  .dark-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--ink-3);
+    font-size: 14px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: background 0.15s;
+    width: auto;
+  }
+  .dark-toggle:hover { background: var(--surface-2); }
+  .history-item {
+    font-family: var(--monospace-family);
+    font-size: var(--font-size-xsmall);
+    padding: 4px 6px;
+    background: var(--surface-1);
+    border-radius: 4px;
+    margin-top: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--ink-2);
+  }
+  .history-item:first-child { margin-top: 6px; }
+  .history-item { cursor: pointer; }
+  .history-item:hover { background: var(--surface-2); }
+  .history-item .label {
+    color: var(--ink-4);
+    font-family: var(--font-family);
+  }
 </style>
 </head>
-<body>
+<body data-more="ab">
 
-<div class="container">
-  <h1>copy-test-path</h1>
-  <p class="sub">Right-click any element and copy its selector path, or configure defaults below.</p>
-
-  <label for="format">Output format:</label>
-  <select id="format">
-    <option value="playwright-path">Playwright path (tag[n] + testid)</option>
-    <option value="css-selector">CSS selector (nth-of-type)</option>
-    <option value="xpath">XPath</option>
-    <option value="test-snippet">Playwright snippet</option>
-  </select>
-
-  <hr>
-
-  <div class="row">
-    <label for="highlight">Highlight on copy</label>
-    <input type="checkbox" id="highlight" checked>
-  </div>
-  <div class="row">
-    <label for="shadowDom">Traverse shadow DOM</label>
-    <input type="checkbox" id="shadowDom" checked>
-  </div>
-  <div class="row">
-    <label for="skipTestignore">Skip <code>data-testignore</code></label>
-    <input type="checkbox" id="skipTestignore" checked>
+<div class="pane">
+  <div class="header">
+    <div class="header-icon" aria-hidden="true">&#9881;</div>
+    <div class="header-text">
+      <h1 data-i18n="popupTitle"></h1>
+      <div class="sub" data-i18n="popupSubtitle"></div>
+    </div>
   </div>
 
-  <hr>
+  <div class="section" data-more="a">
+    <div class="section-header" id="toggleFormat">
+      <span data-i18n="formatLabel"></span>
+      <span class="arrow">&#9660;</span>
+    </div>
+    <div class="section-body">
+      <select id="format">
+        <option value="playwright-path" data-i18n="formatPlaywrightPath"></option>
+        <option value="css-selector" data-i18n="formatCssSelector"></option>
+        <option value="xpath" data-i18n="formatXPath"></option>
+        <option value="test-snippet" data-i18n="formatTestSnippet"></option>
+      </select>
+    </div>
+  </div>
 
-  <button class="primary" id="copyAll">Copy All testids on Page</button>
-  <button class="primary" id="toggleInspector">Toggle Inspector Mode</button>
+  <div class="section" data-more="b">
+    <div class="section-header" id="toggleBehaviors">
+      <span data-i18n="Behaviors"></span>
+      <span class="arrow">&#9660;</span>
+    </div>
+    <div class="section-body">
+      <div class="row">
+        <label for="highlight" data-i18n="highlightLabel"></label>
+        <input type="checkbox" id="highlight" checked>
+      </div>
+      <div class="row">
+        <label for="shadowDom" data-i18n="shadowDomLabel"></label>
+        <input type="checkbox" id="shadowDom" checked>
+      </div>
+      <div class="row">
+        <label for="skipTestignore" data-i18n="skipTestignoreLabel"></label>
+        <input type="checkbox" id="skipTestignore" checked>
+      </div>
+    </div>
+  </div>
+
+  <button class="primary" id="pickElement" data-i18n="pickElementButton"></button>
+  <button class="primary" id="copyAll" data-i18n="copyAllButton"></button>
+  <button class="primary" id="toggleInspector" data-i18n="inspectorButton"></button>
 
   <div id="status"></div>
 
-  <div class="version">v2.0.0</div>
+  <div id="history"></div>
+
+  <div class="footer">
+    <span class="version">v3.1.0</span>
+    <button class="dark-toggle" id="darkToggle" title="Toggle dark mode">&#9680;</button>
+  </div>
 </div>
 
-<script src="popup.js"></script>
+<script src="popup.js" type="module"></script>
 </body>
 </html>

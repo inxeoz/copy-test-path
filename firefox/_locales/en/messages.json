@@ -1,0 +1,156 @@
+{
+  "extName": {
+    "message": "copy-test-path",
+    "description": "Extension name"
+  },
+  "extDescription": {
+    "message": "Right-click any element to copy its selector path for E2E tests",
+    "description": "Extension description"
+  },
+  "popupTitle": {
+    "message": "copy-test-path",
+    "description": "Popup heading"
+  },
+  "popupSubtitle": {
+    "message": "Right-click any element and copy its selector path, or configure defaults below.",
+    "description": "Popup subtitle"
+  },
+  "formatLabel": {
+    "message": "Output format",
+    "description": "Label for format selector"
+  },
+  "formatPlaywrightPath": {
+    "message": "Playwright path (tag[n] + testid)",
+    "description": "Playwright path format option"
+  },
+  "formatCssSelector": {
+    "message": "CSS selector (nth-of-type)",
+    "description": "CSS selector format option"
+  },
+  "formatXPath": {
+    "message": "XPath",
+    "description": "XPath format option"
+  },
+  "formatTestSnippet": {
+    "message": "Playwright snippet",
+    "description": "Playwright snippet format option"
+  },
+  "highlightLabel": {
+    "message": "Highlight on copy",
+    "description": "Checkbox label for highlight feature"
+  },
+  "shadowDomLabel": {
+    "message": "Traverse shadow DOM",
+    "description": "Checkbox label for shadow DOM traversal"
+  },
+  "skipTestignoreLabel": {
+    "message": "Skip data-testignore",
+    "description": "Checkbox label for skipping testignore elements"
+  },
+  "copyAllButton": {
+    "message": "Copy All testids on Page",
+    "description": "Button to copy all data-testid attributes"
+  },
+  "inspectorButton": {
+    "message": "Toggle Inspector Mode",
+    "description": "Button to toggle inspector mode"
+  },
+  "pickElementButton": {
+    "message": "Pick element from page",
+    "description": "Button to launch element picker"
+  },
+  "contextMenuPickElement": {
+    "message": "Pick element from page",
+    "description": "Context menu item to launch element picker"
+  },
+  "elementPickerTitle": {
+    "message": "Element picker",
+    "description": "Title of element picker dialog"
+  },
+  "elementPickerCopyPath": {
+    "message": "Copy path",
+    "description": "Button in element picker to copy path"
+  },
+  "elementPickerQuit": {
+    "message": "Quit",
+    "description": "Quit element picker"
+  },
+  "statusDone": {
+    "message": "Done!",
+    "description": "Success status message"
+  },
+  "statusNotLoaded": {
+    "message": "Content script not loaded on this page",
+    "description": "Error when content script not available"
+  },
+  "copiedToast": {
+    "message": "Copied!",
+    "description": "Toast shown after copying"
+  },
+  "clipboardFailed": {
+    "message": "Clipboard failed",
+    "description": "Error when clipboard write fails"
+  },
+  "inspectorModeIndicator": {
+    "message": "Inspector — click to copy · click here to exit",
+    "description": "Inspector mode indicator text"
+  },
+  "exitInspectorTooltip": {
+    "message": "Exit Inspector mode",
+    "description": "Tooltip for inspector exit button"
+  },
+  "noTestIdsFound": {
+    "message": "(no data-testid attributes found on this page)",
+    "description": "Message when no testids are found"
+  },
+  "copiedTestIds": {
+    "message": "Copied $COUNT$ testid",
+    "description": "Toast after copying multiple testids",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "5"
+      }
+    }
+  },
+  "contextMenuCopyPath": {
+    "message": "Copy Path",
+    "description": "Context menu item to copy element path"
+  },
+  "contextMenuCopyUrlPath": {
+    "message": "Copy URL + Path",
+    "description": "Context menu item to copy URL and element path"
+  },
+  "contextMenuCopyAllTestIds": {
+    "message": "Copy All testids on Page",
+    "description": "Context menu item to copy all testids"
+  },
+  "contextMenuToggleInspector": {
+    "message": "Toggle Inspector Mode",
+    "description": "Context menu item to toggle inspector"
+  },
+  "formatPlaywrightPathShort": {
+    "message": "Playwright path",
+    "description": "Short format name"
+  },
+  "formatCssSelectorShort": {
+    "message": "CSS selector",
+    "description": "Short format name"
+  },
+  "formatXPathShort": {
+    "message": "XPath",
+    "description": "Short format name"
+  },
+  "formatTestSnippetShort": {
+    "message": "Playwright snippet",
+    "description": "Short format name"
+  },
+  "Behaviors": {
+    "message": "Behaviors",
+    "description": "Section header for behavior settings"
+  },
+  "pathDepthLabel": {
+    "message": "Path depth (segments shown)",
+    "description": "Label for path depth selector"
+  }
+}
