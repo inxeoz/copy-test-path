@@ -5,7 +5,7 @@ function createContextMenus() {
     browser.contextMenus.create({ id: 'copy-nav-path', title: i18n.getMessage('contextMenuCopyPath'), contexts: ['all'] });
     browser.contextMenus.create({ id: 'copy-url-path', title: i18n.getMessage('contextMenuCopyUrlPath'), contexts: ['all'] });
     browser.contextMenus.create({ id: 'separator-1', type: 'separator', contexts: ['all'] });
-    browser.contextMenus.create({ id: 'pick-element', title: i18n.getMessage('contextMenuPickElement'), contexts: ['page'] });
+    browser.contextMenus.create({ id: 'pick-element', title: i18n.getMessage('contextMenuPickElement'), contexts: ['all'] });
     browser.contextMenus.create({ id: 'copy-all-testids', title: i18n.getMessage('contextMenuCopyAllTestIds'), contexts: ['all'] });
     browser.contextMenus.create({ id: 'toggle-inspector', title: i18n.getMessage('contextMenuToggleInspector'), contexts: ['all'] });
   });
