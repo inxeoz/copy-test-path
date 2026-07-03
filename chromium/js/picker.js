@@ -146,12 +146,12 @@
     const rect = el.getBoundingClientRect();
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    const path = typeof formatPath === 'function' ? formatPath(el, { format: 'playwright-path', shadowDom: true, skipTestignore: true, pathDepth: 'all' }) : el.tagName;
+    const rawPath = typeof formatPath === 'function' ? formatPath(el, { format: 'playwright-path', shadowDom: true, skipTestignore: true, pathDepth: 'all' }) : el.tagName;
     currentEl = el;
-    currentPath = path;
-    pathDisplay.textContent = path;
+    currentPath = location.href + ' | ' + rawPath;
+    pathDisplay.textContent = currentPath;
     if (!dragging) {
-      const w = Math.min(420, Math.max(190, Math.ceil(path.length * 8) + 56));
+      const w = Math.min(420, Math.max(190, Math.ceil(currentPath.length * 8) + 56));
       dialog.style.width = w + 'px';
     }
     ocean.setAttribute('d', `M0 0h${vw}v${vh}h-${vw}z M${rect.left} ${rect.top}h${rect.width}v${rect.height}h-${rect.width}z`);

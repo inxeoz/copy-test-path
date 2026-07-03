@@ -16,6 +16,15 @@ chrome.action.onClicked.addListener(() => {
   chrome.tabs.create({ url: 'popup.html' });
 });
 
+chrome.commands.onCommand.addListener((command) => {
+  if (command === 'pick-element') {
+    chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+      chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['js/picker.js'] })
+        .catch(err => console.warn('copy-test-path:', err.message));
+    });
+  }
+});
+
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === 'pick-element') {
     chrome.scripting.executeScript({ target: { tabId: tab.id, frameIds: [info.frameId] }, files: ['js/picker.js'] })

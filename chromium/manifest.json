@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "copy-test-path",
-  "version": "3.2.0",
+  "version": "3.2.1",
   "description": "Right-click any element to copy its selector path for E2E tests",
   "permissions": [
     "contextMenus",
@@ -23,6 +23,18 @@
       "run_at": "document_end"
     }
   ],
+  "commands": {
+    "pick-element": {
+      "suggested_key": { "default": "Ctrl+Shift+Slash" },
+      "description": "Pick element from page"
+    }
+  },
+  "commands": {
+    "pick-element": {
+      "suggested_key": { "default": "Ctrl+Shift+X" },
+      "description": "Pick element from page"
+    }
+  },
   "action": {
     "default_title": "copy-test-path"
   }

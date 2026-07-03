@@ -18,6 +18,18 @@ browser.browserAction.onClicked.addListener((tab) => {
   browser.tabs.create({ url: browser.runtime.getURL('page.html') + '?tab=' + tab.id });
 });
 
+console.log('copy-test-path: background loaded, browser.commands:', typeof browser.commands);
+browser.commands.onCommand.addListener((command) => {
+  console.log('copy-test-path: command received', command);
+  if (command === 'pick-element') {
+    browser.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
+      console.log('copy-test-path: injecting picker into tab', tab.id);
+      browser.tabs.executeScript(tab.id, { file: 'js/picker.js' })
+        .catch(err => console.warn('copy-test-path:', err.message));
+    });
+  }
+});
+
 browser.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === 'pick-element') {
     browser.tabs.executeScript(tab.id, { file: 'js/picker.js', frameId: info.frameId })
