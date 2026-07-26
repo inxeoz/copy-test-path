@@ -92,6 +92,20 @@
     return buildXPath(el);
   }
 
+  function calcTestidPercent(el) {
+    var total = 0;
+    var withId = 0;
+    var cur = el;
+    while (cur && cur !== document.documentElement && cur !== document.body) {
+      if (shouldSkip(cur)) { cur = cur.parentElement; continue; }
+      total++;
+      if (cur.hasAttribute('data-testid') || cur.id) withId++;
+      cur = cur.parentElement;
+    }
+    if (total === 0) return 0;
+    return Math.round((withId / total) * 100);
+  }
+
   // ── Shadow DOM element detection ───────────────────────────────────
 
   function elFromPoint(x, y) {
@@ -282,16 +296,18 @@
   function doCopy() {
     if (!currentPath) return;
     var copyText = location.href + ' | ' + formatPath(currentEl);
+    var pct = calcTestidPercent(currentEl);
     console.log('[copy-ui-path-lite] ──────────────────────────────────────');
     console.log('[copy-ui-path-lite] COPIED TO CLIPBOARD:');
     console.log('[copy-ui-path-lite]', copyText);
+    console.log('[copy-ui-path-lite] testid coverage:', pct + '%');
     console.log('[copy-ui-path-lite] ──────────────────────────────────────');
     hidePicker();
     copyBtn.textContent = 'Copied!';
     copyBtn.classList.add('copied');
     copyToClipboard(copyText).then(function () {
-      var preview = copyText.length > 60 ? copyText.slice(0, 57) + '...' : copyText;
-      showToast('Copied Path : ' + preview);
+      var preview = copyText.length > 50 ? copyText.slice(0, 47) + '...' : copyText;
+      showToast('Copied Path : ' + preview + '  [' + pct + '%]');
       dialog.classList.add('closing');
       setTimeout(quit, 300);
     }).catch(function () {
