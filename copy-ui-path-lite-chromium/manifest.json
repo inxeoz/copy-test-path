@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "copy-ui-path-lite",
+  "version": "1.1.0",
+  "description": "Click the icon to pick an element and copy its selector path",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "contextMenus"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "commands": {
+    "pick-element": {
+      "suggested_key": { "default": "Ctrl+Shift+X" },
+      "description": "Pick element from page"
+    }
+  },
+  "action": {
+    "default_title": "Pick element from page"
+  }
+}
