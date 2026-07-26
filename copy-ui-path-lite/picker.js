@@ -28,8 +28,22 @@
     return el.hasAttribute('data-testignore');
   }
 
+  var TEST_ATTRS = [
+    'data-testid', 'data-test', 'data-cy', 'data-qa',
+    'data-automation-id', 'data-automation', 'data-e2e',
+    'data-test-id', 'data-component', 'data-element'
+  ];
+
+  function getTestId(el) {
+    for (var i = 0; i < TEST_ATTRS.length; i++) {
+      var val = el.getAttribute(TEST_ATTRS[i]);
+      if (val) return { name: TEST_ATTRS[i], value: val };
+    }
+    return null;
+  }
+
   function getContext(el) {
-    if (el.hasAttribute('data-testid')) return '';
+    if (getTestId(el)) return '';
     if (el.id) return '(#' + el.id + ')';
     if (el.className && typeof el.className === 'string' && el.className.trim()) {
       return '(' + el.className.trim().split(/\s+/)[0] + ')';
@@ -38,18 +52,18 @@
   }
 
   function segPlaywright(el) {
-    const tid = el.getAttribute('data-testid');
+    var tid = getTestId(el);
     if (tid) {
       const label = el.getAttribute('data-testlabel');
-      return label ? tid + '[data-testlabel="' + label + '"]' : tid;
+      return label ? tid.value + '[data-testlabel="' + label + '"]' : tid.value;
     }
     var ctx = getContext(el);
     return el.tagName.toLowerCase() + '[' + siblingIndex(el) + ']' + ctx;
   }
 
   function segXPath(el) {
-    const tid = el.getAttribute('data-testid');
-    if (tid) return '*[@data-testid="' + tid + '"]';
+    var tid = getTestId(el);
+    if (tid) return '*[@' + tid.name + '="' + tid.value + '"]';
     var ctx = getContext(el);
     return el.tagName.toLowerCase() + '[' + siblingIndex(el) + ']' + ctx;
   }
@@ -90,12 +104,12 @@
   }
 
   function formatPath(el) {
-    var tid = el.getAttribute('data-testid');
+    var tid = getTestId(el);
     if (tid) {
-      console.log('[copy-ui-path-lite] element has testid:', tid, '-> using Playwright path');
+      console.log('[copy-ui-path-lite] element has ' + tid.name + ':', tid.value, '-> using Playwright path');
       return buildPlaywrightPath(el);
     }
-    console.log('[copy-ui-path-lite] no testid -> using XPath');
+    console.log('[copy-ui-path-lite] no test id found -> using XPath');
     return buildXPath(el);
   }
 
@@ -110,7 +124,7 @@
     while (cur && cur !== document.documentElement && cur !== document.body) {
       if (shouldSkip(cur)) { cur = cur.parentElement; continue; }
       total++;
-      if (cur.hasAttribute('data-testid') || cur.id) withId++;
+      if (getTestId(cur) || cur.id) withId++;
       cur = cur.parentElement;
     }
     if (total === 0) return 0;
@@ -282,8 +296,8 @@
     var cls = el.className && typeof el.className === 'string'
       ? '.' + el.className.trim().split(/\s+/).slice(0, 3).join('.')
       : '';
-    var tid = el.getAttribute('data-testid');
-    var tidStr = tid ? ' [testid=' + tid + ']' : '';
+    var tid = getTestId(el);
+    var tidStr = tid ? ' [' + tid.name + '=' + tid.value + ']' : '';
     var dim = Math.round(rect.width) + '\u00d7' + Math.round(rect.height);
     ttEl.textContent = tag + id + cls + tidStr + ' ' + dim;
     var tx = lastX + 18;
