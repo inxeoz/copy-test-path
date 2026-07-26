@@ -28,19 +28,30 @@
     return el.hasAttribute('data-testignore');
   }
 
+  function getContext(el) {
+    if (el.hasAttribute('data-testid')) return '';
+    if (el.id) return '(#' + el.id + ')';
+    if (el.className && typeof el.className === 'string' && el.className.trim()) {
+      return '(' + el.className.trim().split(/\s+/)[0] + ')';
+    }
+    return '';
+  }
+
   function segPlaywright(el) {
     const tid = el.getAttribute('data-testid');
     if (tid) {
       const label = el.getAttribute('data-testlabel');
       return label ? tid + '[data-testlabel="' + label + '"]' : tid;
     }
-    return el.tagName.toLowerCase() + '[' + siblingIndex(el) + ']';
+    var ctx = getContext(el);
+    return el.tagName.toLowerCase() + '[' + siblingIndex(el) + ']' + ctx;
   }
 
   function segXPath(el) {
     const tid = el.getAttribute('data-testid');
     if (tid) return '*[@data-testid="' + tid + '"]';
-    return el.tagName.toLowerCase() + '[' + siblingIndex(el) + ']';
+    var ctx = getContext(el);
+    return el.tagName.toLowerCase() + '[' + siblingIndex(el) + ']' + ctx;
   }
 
   function walkUp(el, segmentFn) {
