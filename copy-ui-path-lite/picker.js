@@ -63,7 +63,7 @@
 
   function segXPath(el) {
     var tid = getTestId(el);
-    if (tid) return '*[@' + tid.name + '="' + tid.value + '"]';
+    if (tid) return tid.value;
     var ctx = getContext(el);
     return el.tagName.toLowerCase() + '[' + siblingIndex(el) + ']' + ctx;
   }
