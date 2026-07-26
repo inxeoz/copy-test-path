@@ -5,10 +5,10 @@
     return;
   }
 
-  // Inject shake animation
-  var style = document.createElement('style');
-  style.textContent = '@keyframes ctp-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}';
-  document.head.appendChild(style);
+  // Inject shake animation + close animation
+  var injectedStyle = document.createElement('style');
+  injectedStyle.textContent = '@keyframes ctp-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}@keyframes ctp-fadeOut{from{opacity:1}to{opacity:0;transform:translateY(-8px)}}';
+  document.head.appendChild(injectedStyle);
 
   // ── Path building ──────────────────────────────────────────────────
 
@@ -96,8 +96,14 @@
 
   function elFromPoint(x, y) {
     host.style.setProperty('display', 'none', 'important');
+    hlEl.style.setProperty('display', 'none', 'important');
+    ttEl.style.setProperty('display', 'none', 'important');
     var el = document.elementFromPoint(x, y);
     host.style.removeProperty('display');
+    if (currentEl) {
+      hlEl.style.setProperty('display', 'block', 'important');
+      ttEl.style.setProperty('display', 'block', 'important');
+    }
     return el;
   }
 
@@ -168,6 +174,7 @@
     '*,*::before,*::after{box-sizing:border-box}',
     '#overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;cursor:crosshair;pointer-events:auto}',
     '#dialog{position:fixed;bottom:20px;right:20px;min-width:190px;max-width:420px;background:#fff;border-radius:10px;box-shadow:0 4px 24px rgba(0,0,0,.25),0 1px 4px rgba(0,0,0,.1);overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;font-size:13px;color:#1e293b;pointer-events:auto;z-index:1;transition:width .12s ease}',
+    '#dialog.closing{animation:ctp-fadeOut .25s ease forwards}',
     '#dialog-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#1E3A5F;color:#FFD700;font-weight:600;font-size:13px;cursor:move;user-select:none;white-space:nowrap}',
     '#quitBtn{background:none;border:none;color:#FFD700;font-size:20px;cursor:pointer;padding:0 4px;line-height:1;opacity:.7;flex-shrink:0}',
     '#quitBtn:hover{opacity:1}',
@@ -176,6 +183,14 @@
     '.primary{padding:7px 18px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;background:#1E3A5F;color:#FFD700;transition:background .15s}',
     '.primary:hover{background:#2a5070}',
     '.primary:active{background:#16304a}',
+    '.primary.copied{background:#22c55e}',
+    '@media(prefers-color-scheme:dark){',
+    '#dialog{background:#1e293b;color:#e2e8f0}',
+    '#path-display{background:#0f172a;color:#e2e8f0;border-bottom-color:#334155}',
+    '.primary{background:#4A90D9;color:#fff}',
+    '.primary:hover{background:#3b78c0}',
+    '.primary:active{background:#2d5fa0}',
+    '}',
     '</style>',
     '<svg id="overlay" xmlns="http://www.w3.org/2000/svg">',
     '<path id="ocean" fill="rgba(0,0,0,0.4)" fill-rule="evenodd" d=""/>',
@@ -214,7 +229,7 @@
   var dragging = false;
   var dragOffsetX = 0;
   var dragOffsetY = 0;
-  var throttleTimer = null;
+  var rafPending = false;
   var lastX = 0;
   var lastY = 0;
 
@@ -272,14 +287,18 @@
     console.log('[copy-ui-path-lite]', copyText);
     console.log('[copy-ui-path-lite] ──────────────────────────────────────');
     hidePicker();
+    copyBtn.textContent = 'Copied!';
+    copyBtn.classList.add('copied');
     copyToClipboard(copyText).then(function () {
       var preview = copyText.length > 60 ? copyText.slice(0, 57) + '...' : copyText;
       showToast('Copied Path : ' + preview);
-      setTimeout(quit, 1500);
+      dialog.classList.add('closing');
+      setTimeout(quit, 300);
     }).catch(function () {
       console.error('[copy-ui-path-lite] clipboard write FAILED');
       showToast('Clipboard failed', true);
-      setTimeout(quit, 1500);
+      dialog.classList.add('closing');
+      setTimeout(quit, 300);
     });
   }
 
@@ -290,6 +309,7 @@
     document.removeEventListener('mousemove', onDragMove);
     document.removeEventListener('mouseup', onDragEnd);
     document.removeEventListener('keydown', onKeyDown, true);
+    injectedStyle.remove();
     hlEl.remove();
     ttEl.remove();
     host.remove();
@@ -299,10 +319,13 @@
     if (dragging) return;
     lastX = e.clientX;
     lastY = e.clientY;
-    if (throttleTimer) return;
-    throttleTimer = setTimeout(function () { throttleTimer = null; }, 30);
-    var el = elFromPoint(e.clientX, e.clientY);
-    if (el) updateUI(el);
+    if (rafPending) return;
+    rafPending = true;
+    requestAnimationFrame(function () {
+      rafPending = false;
+      var el = elFromPoint(lastX, lastY);
+      if (el) updateUI(el);
+    });
   }
 
   function onOverlayClick(e) {
