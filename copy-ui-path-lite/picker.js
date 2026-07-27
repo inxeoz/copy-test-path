@@ -117,6 +117,11 @@
     return buildXPath(el);
   }
 
+  function buildCornerAnnotation(el) {
+    var r = el.getBoundingClientRect();
+    return '[tl=[' + Math.round(r.left) + ',' + Math.round(r.top) + '], tr=[' + Math.round(r.right) + ',' + Math.round(r.top) + '], bl=[' + Math.round(r.left) + ',' + Math.round(r.bottom) + '], br=[' + Math.round(r.right) + ',' + Math.round(r.bottom) + ']]';
+  }
+
   function calcTestidPercent(el) {
     var total = 0;
     var withId = 0;
@@ -195,6 +200,7 @@
     host.style.display = 'none';
     hlEl.style.display = 'none';
     ttEl.style.display = 'none';
+    hideCornerLabels();
   }
 
   // ── UI ─────────────────────────────────────────────────────────────
@@ -233,6 +239,19 @@
   ttEl.style.cssText = 'position:fixed;z-index:2147483647;background:rgba(30,41,59,0.92);color:#FFD700;font:12px/1.4 SF Mono,Cascadia Code,Menlo,Consolas,monospace;padding:5px 10px;border-radius:4px;pointer-events:none;white-space:nowrap;display:none;box-shadow:0 2px 8px rgba(0,0,0,0.3);';
   document.body.appendChild(ttEl);
 
+  // Corner labels
+  var cornerLabels = [];
+  ['tl', 'tr', 'bl', 'br'].forEach(function(name) {
+    var el = document.createElement('div');
+    el.style.cssText = 'position:fixed;z-index:2147483646;font:11px/1 SF Mono,Cascadia Code,Fira Code,Menlo,monospace;color:#1E3A5F;background:#FFD700;padding:2px 5px;border-radius:3px;pointer-events:none;white-space:nowrap;display:none;';
+    document.body.appendChild(el);
+    cornerLabels.push(el);
+  });
+  var cornerTl = cornerLabels[0];
+  var cornerTr = cornerLabels[1];
+  var cornerBl = cornerLabels[2];
+  var cornerBr = cornerLabels[3];
+
   var currentEl = null;
   var currentPath = '';
   var dragging = false;
@@ -241,6 +260,44 @@
   var rafPending = false;
   var lastX = 0;
   var lastY = 0;
+
+  function updateCornerLabels(rect) {
+    var tlX = Math.round(rect.left);
+    var tlY = Math.round(rect.top);
+    var trX = Math.round(rect.right);
+    var trY = Math.round(rect.top);
+    var blX = Math.round(rect.left);
+    var blY = Math.round(rect.bottom);
+    var brX = Math.round(rect.right);
+    var brY = Math.round(rect.bottom);
+
+    cornerTl.textContent = 'tl[' + tlX + ',' + tlY + ']';
+    cornerTl.style.left = Math.max(2, rect.left - 4) + 'px';
+    cornerTl.style.top = Math.max(2, rect.top - 22) + 'px';
+    cornerTl.style.display = 'block';
+
+    cornerTr.textContent = 'tr[' + trX + ',' + trY + ']';
+    cornerTr.style.right = Math.max(2, window.innerWidth - rect.right + 4) + 'px';
+    cornerTr.style.top = Math.max(2, rect.top - 22) + 'px';
+    cornerTr.style.display = 'block';
+
+    cornerBl.textContent = 'bl[' + blX + ',' + blY + ']';
+    cornerBl.style.left = Math.max(2, rect.left - 4) + 'px';
+    cornerBl.style.top = (rect.bottom + 4) + 'px';
+    cornerBl.style.display = 'block';
+
+    cornerBr.textContent = 'br[' + brX + ',' + brY + ']';
+    cornerBr.style.right = Math.max(2, window.innerWidth - rect.right + 4) + 'px';
+    cornerBr.style.top = (rect.bottom + 4) + 'px';
+    cornerBr.style.display = 'block';
+  }
+
+  function hideCornerLabels() {
+    cornerTl.style.display = 'none';
+    cornerTr.style.display = 'none';
+    cornerBl.style.display = 'none';
+    cornerBr.style.display = 'none';
+  }
 
   function updateUI(el) {
     if (!el || el === currentEl) return;
@@ -279,8 +336,11 @@
     ttEl.style.top = ty + 'px';
     ttEl.style.display = 'block';
 
+    // Corner labels
+    updateCornerLabels(rect);
+
     // Path display (always XPath for preview)
-    currentPath = location.href + ' | ' + formatPreview(el);
+    currentPath = location.href + ' | ' + formatPreview(el) + ' ' + buildCornerAnnotation(el);
     pathDisplay.textContent = currentPath;
     if (!dragging) {
       var w = Math.min(420, Math.max(190, Math.ceil(currentPath.length * 7.5) + 56));
@@ -290,7 +350,7 @@
 
   function doCopy() {
     if (!currentPath) return;
-    var copyText = location.href + ' | ' + formatPath(currentEl);
+    var copyText = location.href + ' | ' + formatPath(currentEl) + ' ' + buildCornerAnnotation(currentEl);
     var pct = calcTestidPercent(currentEl);
     console.log('[copy-ui-path-lite] ──────────────────────────────────────');
     console.log('[copy-ui-path-lite] COPIED TO CLIPBOARD:');
@@ -323,6 +383,10 @@
     injectedStyle.remove();
     hlEl.remove();
     ttEl.remove();
+    cornerTl.remove();
+    cornerTr.remove();
+    cornerBl.remove();
+    cornerBr.remove();
     host.remove();
   }
 
