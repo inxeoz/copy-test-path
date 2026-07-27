@@ -29,10 +29,6 @@
     CTX_CLOSE:'ctx_close',
   };
 
-  function esc(str) {
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
-
   function PathBuilder() {
     this.list = [];
   }
@@ -43,10 +39,14 @@
   PathBuilder.prototype.toText = function() {
     return this.list.map(function(s) { return s.value; }).join('');
   };
-  PathBuilder.prototype.toHTML = function() {
-    return this.list.map(function(s) {
-      return '<span class="p-' + s.type + '">' + esc(s.value) + '</span>';
-    }).join('');
+  PathBuilder.prototype.appendTo = function(parent) {
+    for (var i = 0; i < this.list.length; i++) {
+      var s = this.list[i];
+      var span = document.createElement('span');
+      span.className = 'p-' + s.type;
+      span.textContent = s.value;
+      parent.appendChild(span);
+    }
   };
 
   function siblingIndex(el) {
@@ -466,7 +466,8 @@
     // Path display (always XPath for preview)
     var pb = buildPathData(el, formatPreview(el), zVal);
     currentPath = pb.toText();
-    pathDisplay.innerHTML = pb.toHTML();
+    pathDisplay.textContent = '';
+    pb.appendTo(pathDisplay);
     if (!dragging) {
       var w = Math.min(420, Math.max(190, Math.ceil(currentPath.length * 7.5) + 56));
       dialog.style.width = w + 'px';
