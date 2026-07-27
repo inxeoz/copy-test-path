@@ -617,6 +617,7 @@
     frozen = true;
     dialog.classList.add('frozen');
     overlay.classList.add('frozen');
+    showToast('Frozen — left click to unfreeze');
     var el = elFromPoint(e.clientX, e.clientY);
     if (el) updateUI(el);
   }
