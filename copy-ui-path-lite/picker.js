@@ -12,6 +12,43 @@
 
   // ── Path building ──────────────────────────────────────────────────
 
+  var PART = {
+    URL:      'url',
+    SEP:      'sep',
+    PATH:     'path',
+    PATH_TID: 'path_tid',
+    SEP_PATH: 'sep_path',
+    BR_OPEN:  'br_open',
+    CORNER:   'corner',
+    Z_INDEX:  'zindex',
+    BR_CLOSE: 'br_close',
+    CTX_OPEN: 'ctx_open',
+    CTX_KEY:  'ctx_key',
+    CTX_STR:  'ctx_str',
+    CTX_FLAG: 'ctx_flag',
+    CTX_CLOSE:'ctx_close',
+  };
+
+  function esc(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function PathBuilder() {
+    this.list = [];
+  }
+  PathBuilder.prototype.add = function(type, value) {
+    this.list.push({ type: type, value: value });
+    return this;
+  };
+  PathBuilder.prototype.toText = function() {
+    return this.list.map(function(s) { return s.value; }).join('');
+  };
+  PathBuilder.prototype.toHTML = function() {
+    return this.list.map(function(s) {
+      return '<span class="p-' + s.type + '">' + esc(s.value) + '</span>';
+    }).join('');
+  };
+
   function siblingIndex(el) {
     const p = el.parentElement;
     if (!p) return 1;
@@ -117,32 +154,68 @@
     return buildXPath(el);
   }
 
-  function buildCornerAnnotation(el, zIndex) {
-    var r = el.getBoundingClientRect();
-    var s = '[tl=[' + Math.round(r.left) + ',' + Math.round(r.top) + '], tr=[' + Math.round(r.right) + ',' + Math.round(r.top) + '], bl=[' + Math.round(r.left) + ',' + Math.round(r.bottom) + '], br=[' + Math.round(r.right) + ',' + Math.round(r.bottom) + ']';
-    if (zIndex) s += ' z-index=' + zIndex;
-    return s + ']';
-  }
-
-  function buildElementContext(el) {
-    var parts = [];
+  function buildContextParts(el) {
+    var segs = [];
     var text = (el.textContent || '').trim().replace(/\s+/g, ' ');
     if (text) {
       text = text.length > 40 ? text.slice(0, 37) + '...' : text;
-      parts.push('text="' + text + '"');
+      segs.push({ type: PART.CTX_KEY, value: 'text' });
+      segs.push({ type: PART.CTX_STR, value: '="' + text + '"' });
     }
     var role = el.getAttribute('role');
-    if (role) parts.push('role="' + role + '"');
-    if (el.disabled) parts.push('disabled');
-    if (el.checked) parts.push('checked');
-    if (el.selected) parts.push('selected');
-    var rect2 = el.getBoundingClientRect();
-    var scrollX = rect2.left + window.scrollX;
-    var scrollY = rect2.top + window.scrollY;
-    if (scrollX !== 0 || scrollY !== 0) {
-      parts.push('scroll="' + Math.round(scrollX) + ',' + Math.round(scrollY) + '"');
+    if (role) {
+      segs.push({ type: PART.CTX_KEY, value: ' role' });
+      segs.push({ type: PART.CTX_STR, value: '="' + role + '"' });
     }
-    return parts.length > 0 ? ' [' + parts.join(' ') + ']' : '';
+    if (el.disabled) segs.push({ type: PART.CTX_FLAG, value: ' disabled' });
+    if (el.checked)  segs.push({ type: PART.CTX_FLAG, value: ' checked' });
+    if (el.selected) segs.push({ type: PART.CTX_FLAG, value: ' selected' });
+    var r = el.getBoundingClientRect();
+    var sx = r.left + window.scrollX;
+    var sy = r.top + window.scrollY;
+    if (sx !== 0 || sy !== 0) {
+      segs.push({ type: PART.CTX_KEY, value: ' scroll' });
+      segs.push({ type: PART.CTX_STR, value: '="' + Math.round(sx) + ',' + Math.round(sy) + '"' });
+    }
+    return segs;
+  }
+
+  function splitPathFull(selectorPath, el) {
+    var isXPath = selectorPath.charAt(0) === '/';
+    var sep = isXPath ? '/' : ' > ';
+    var raw = selectorPath.split(sep);
+    var result = [];
+    var lastHasTid = !!getTestId(el);
+    var start = (isXPath && raw[0] === '') ? 1 : 0;
+    if (isXPath && raw[0] === '') result.push({ type: PART.PATH, value: '' });
+    for (var i = start; i < raw.length; i++) {
+      if (i > start) result.push({ type: PART.SEP_PATH, value: sep });
+      result.push({ type: (i === raw.length - 1 && lastHasTid) ? PART.PATH_TID : PART.PATH, value: raw[i] });
+    }
+    return result;
+  }
+
+  function buildPathData(el, selectorPath, zVal) {
+    var pb = new PathBuilder();
+    var rect = el.getBoundingClientRect();
+
+    pb.add(PART.URL, location.href);
+    pb.add(PART.SEP, ' | ');
+    splitPathFull(selectorPath, el).forEach(function(s) { pb.add(s.type, s.value); });
+
+    pb.add(PART.BR_OPEN, ' [');
+    pb.add(PART.CORNER, 'tl=[' + Math.round(rect.left) + ',' + Math.round(rect.top) + '], tr=[' + Math.round(rect.right) + ',' + Math.round(rect.top) + '], bl=[' + Math.round(rect.left) + ',' + Math.round(rect.bottom) + '], br=[' + Math.round(rect.right) + ',' + Math.round(rect.bottom) + ']');
+    if (zVal) pb.add(PART.Z_INDEX, ' z-index=' + zVal);
+    pb.add(PART.BR_CLOSE, ']');
+
+    var ctx = buildContextParts(el);
+    if (ctx.length) {
+      pb.add(PART.CTX_OPEN, ' [');
+      ctx.forEach(function(p) { pb.add(p.type, p.value); });
+      pb.add(PART.CTX_CLOSE, ']');
+    }
+
+    return pb;
   }
 
   function calcTestidPercent(el) {
@@ -239,7 +312,7 @@
 
   var shadow = host.attachShadow({ mode: 'closed' });
   var tpl = document.createElement('template');
-  tpl.innerHTML = '<style>*,*::before,*::after{box-sizing:border-box}#overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;cursor:crosshair;pointer-events:auto}#dialog{position:fixed;bottom:20px;right:20px;min-width:190px;max-width:420px;background:#fff;border-radius:10px;box-shadow:0 4px 24px rgba(0,0,0,.25),0 1px 4px rgba(0,0,0,.1);overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;font-size:13px;color:#1e293b;pointer-events:auto;z-index:1;transition:width .12s ease}#dialog.closing{animation:ctp-fadeOut .25s ease forwards}#dialog-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#1E3A5F;color:#FFD700;font-weight:600;font-size:13px;cursor:move;user-select:none;white-space:nowrap}#quitBtn{background:none;border:none;color:#FFD700;font-size:20px;cursor:pointer;padding:0 4px;line-height:1;opacity:.7;flex-shrink:0}#quitBtn:hover{opacity:1}#path-display{padding:12px 14px;font-family:SF Mono,Cascadia Code,Fira Code,Menlo,Consolas,monospace;font-size:12px;color:#1e293b;background:#f8fafc;border-bottom:1px solid #e2e8f0;word-break:break-all;line-height:1.5;min-height:40px;max-height:120px;overflow-y:auto;white-space:pre-wrap}#dialog-actions{padding:10px 14px;display:flex;justify-content:flex-end;gap:8px}.primary{padding:7px 18px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;background:#1E3A5F;color:#FFD700;transition:background .15s}.primary:hover{background:#2a5070}.primary:active{background:#16304a}.primary.copied{background:#22c55e}@media(prefers-color-scheme:dark){#dialog{background:#1e293b;color:#e2e8f0}#path-display{background:#0f172a;color:#e2e8f0;border-bottom-color:#334155}.primary{background:#4A90D9;color:#fff}.primary:hover{background:#3b78c0}.primary:active{background:#2d5fa0}}</style><svg id="overlay" xmlns="http://www.w3.org/2000/svg"><path id="ocean" fill="rgba(0,0,0,0.4)" fill-rule="evenodd" d=""/><path id="island" fill="rgba(255,215,0,0.2)" stroke="#FFD700" stroke-width="2" d=""/></svg><div id="dialog"><div id="dialog-header"><span>Element picker</span><button id="quitBtn" title="Quit">&times;</button></div><div id="path-display">Hover over an element...</div><div id="dialog-actions"><button id="copyBtn" class="primary">Copy path</button></div></div>';
+  tpl.innerHTML = '<style>*,*::before,*::after{box-sizing:border-box}#overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;cursor:crosshair;pointer-events:auto}#dialog{position:fixed;bottom:20px;right:20px;min-width:190px;max-width:420px;background:#fff;border-radius:10px;box-shadow:0 4px 24px rgba(0,0,0,.25),0 1px 4px rgba(0,0,0,.1);overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;font-size:13px;color:#1e293b;pointer-events:auto;z-index:1;transition:width .12s ease}#dialog.closing{animation:ctp-fadeOut .25s ease forwards}#dialog-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#1E3A5F;color:#FFD700;font-weight:600;font-size:13px;cursor:move;user-select:none;white-space:nowrap}#quitBtn{background:none;border:none;color:#FFD700;font-size:20px;cursor:pointer;padding:0 4px;line-height:1;opacity:.7;flex-shrink:0}#quitBtn:hover{opacity:1}#path-display{padding:12px 14px;font-family:SF Mono,Cascadia Code,Fira Code,Menlo,Consolas,monospace;font-size:12px;color:#1e293b;background:#f8fafc;border-bottom:1px solid #e2e8f0;word-break:break-all;line-height:1.5;min-height:40px;max-height:120px;overflow-y:auto;white-space:pre-wrap}#dialog-actions{padding:10px 14px;display:flex;justify-content:flex-end;gap:8px}.primary{padding:7px 18px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;background:#1E3A5F;color:#FFD700;transition:background .15s}.primary:hover{background:#2a5070}.primary:active{background:#16304a}.primary.copied{background:#22c55e}@media(prefers-color-scheme:dark){#dialog{background:#1e293b;color:#e2e8f0}#path-display{background:#0f172a;color:#e2e8f0;border-bottom-color:#334155}.primary{background:#4A90D9;color:#fff}.primary:hover{background:#3b78c0}.primary:active{background:#2d5fa0}}.p-url{color:#1d4ed8}.p-sep{color:#475569}.p-corner{color:#92400e}.p-zindex{color:#6d28d9}.p-ctx_key{color:#047857}.p-ctx_str{color:#065f46}.p-ctx_flag{color:#9f1239}.p-path_tid{color:#991b1b}.p-sep_path{color:#15803d}.p-br_open,.p-br_close{color:#92400e}.p-ctx_open,.p-ctx_close{color:#047857}@media(prefers-color-scheme:dark){.p-url{color:#93c5fd}.p-sep{color:#e2e8f0}.p-corner{color:#fde68a}.p-zindex{color:#ddd6fe}.p-ctx_key{color:#6ee7b7}.p-ctx_str{color:#a7f3d0}.p-ctx_flag{color:#fecdd3}.p-path_tid{color:#fca5a5}.p-sep_path{color:#86efac}.p-br_open,.p-br_close{color:#fde68a}.p-ctx_open,.p-ctx_close{color:#6ee7b7}}</style><svg id="overlay" xmlns="http://www.w3.org/2000/svg"><path id="ocean" fill="rgba(0,0,0,0.4)" fill-rule="evenodd" d=""/><path id="island" fill="rgba(255,215,0,0.2)" stroke="#FFD700" stroke-width="2" d=""/></svg><div id="dialog"><div id="dialog-header"><span>Element picker</span><button id="quitBtn" title="Quit">&times;</button></div><div id="path-display">Hover over an element...</div><div id="dialog-actions"><button id="copyBtn" class="primary">Copy path</button></div></div>';
   shadow.appendChild(tpl.content.cloneNode(true));
 
   document.documentElement.appendChild(host);
@@ -391,8 +464,9 @@
     updateCenterLabel(rect, zVal);
 
     // Path display (always XPath for preview)
-    currentPath = location.href + ' | ' + formatPreview(el) + ' ' + buildCornerAnnotation(el, zVal) + buildElementContext(el);
-    pathDisplay.textContent = currentPath;
+    var pb = buildPathData(el, formatPreview(el), zVal);
+    currentPath = pb.toText();
+    pathDisplay.innerHTML = pb.toHTML();
     if (!dragging) {
       var w = Math.min(420, Math.max(190, Math.ceil(currentPath.length * 7.5) + 56));
       dialog.style.width = w + 'px';
@@ -402,7 +476,7 @@
   function doCopy() {
     if (!currentPath) return;
     var zVal = (function() { var z = window.getComputedStyle(currentEl).zIndex; return (z && z !== 'auto') ? z : null; })();
-    var copyText = location.href + ' | ' + formatPath(currentEl) + ' ' + buildCornerAnnotation(currentEl, zVal) + buildElementContext(currentEl);
+    var copyText = buildPathData(currentEl, formatPath(currentEl), zVal).toText();
     var pct = calcTestidPercent(currentEl);
     console.log('[copy-ui-path-lite] ──────────────────────────────────────');
     console.log('[copy-ui-path-lite] COPIED TO CLIPBOARD:');
