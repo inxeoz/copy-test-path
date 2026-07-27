@@ -600,7 +600,7 @@
       frozen = false;
       dialog.classList.remove('frozen');
       overlay.classList.remove('frozen');
-      dialog.classList.remove('closing');
+      showToast('Resumed hovering');
       return;
     }
     var el = elFromPoint(e.clientX, e.clientY);
