@@ -170,6 +170,41 @@
     if (el.disabled) segs.push({ type: PART.CTX_FLAG, value: ' disabled' });
     if (el.checked)  segs.push({ type: PART.CTX_FLAG, value: ' checked' });
     if (el.selected) segs.push({ type: PART.CTX_FLAG, value: ' selected' });
+    var ariaLabel = el.getAttribute('aria-label');
+    if (ariaLabel) {
+      segs.push({ type: PART.CTX_KEY, value: ' aria-label' });
+      segs.push({ type: PART.CTX_STR, value: '="' + ariaLabel + '"' });
+    }
+    var tag = el.tagName.toLowerCase();
+    if (tag === 'a') {
+      var href = el.getAttribute('href');
+      if (href) {
+        href = href.length > 60 ? href.slice(0, 57) + '...' : href;
+        segs.push({ type: PART.CTX_KEY, value: ' href' });
+        segs.push({ type: PART.CTX_STR, value: '="' + href + '"' });
+      }
+    }
+    if (tag === 'img') {
+      var alt = el.getAttribute('alt');
+      if (alt) {
+        segs.push({ type: PART.CTX_KEY, value: ' alt' });
+        segs.push({ type: PART.CTX_STR, value: '="' + alt + '"' });
+      }
+    }
+    if (el.type) {
+      segs.push({ type: PART.CTX_KEY, value: ' type' });
+      segs.push({ type: PART.CTX_STR, value: '="' + el.type + '"' });
+    }
+    var name = el.getAttribute('name');
+    if (name) {
+      segs.push({ type: PART.CTX_KEY, value: ' name' });
+      segs.push({ type: PART.CTX_STR, value: '="' + name + '"' });
+    }
+    var placeholder = el.getAttribute('placeholder');
+    if (placeholder) {
+      segs.push({ type: PART.CTX_KEY, value: ' placeholder' });
+      segs.push({ type: PART.CTX_STR, value: '="' + placeholder + '"' });
+    }
     var r = el.getBoundingClientRect();
     var sx = r.left + window.scrollX;
     var sy = r.top + window.scrollY;
@@ -177,6 +212,8 @@
       segs.push({ type: PART.CTX_KEY, value: ' scroll' });
       segs.push({ type: PART.CTX_STR, value: '="' + Math.round(sx) + ',' + Math.round(sy) + '"' });
     }
+    segs.push({ type: PART.CTX_KEY, value: ' area' });
+    segs.push({ type: PART.CTX_STR, value: '="' + Math.round(r.width) + 'x' + Math.round(r.height) + '"' });
     return segs;
   }
 
@@ -216,6 +253,17 @@
     }
 
     return pb;
+  }
+
+  function getSelectorPath(el, mode) {
+    if (mode === 'xpath') return buildXPath(el);
+    if (mode === 'pw') return buildPlaywrightPath(el);
+    return formatPath(el);
+  }
+
+  function getPreviewPath(el, mode) {
+    if (mode === 'xpath' || mode === 'pw') return getSelectorPath(el, mode);
+    return formatPreview(el);
   }
 
   function calcTestidPercent(el) {
@@ -307,7 +355,7 @@
 
   var shadow = host.attachShadow({ mode: 'closed' });
   var tpl = document.createElement('template');
-  tpl.innerHTML = '<style>*,*::before,*::after{box-sizing:border-box}#overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;cursor:crosshair;pointer-events:auto}#dialog{position:fixed;bottom:20px;right:20px;min-width:190px;max-width:420px;background:#fff;border-radius:10px;box-shadow:0 4px 24px rgba(0,0,0,.25),0 1px 4px rgba(0,0,0,.1);overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;font-size:13px;color:#1e293b;pointer-events:auto;z-index:1;transition:width .12s ease}#dialog.closing{animation:ctp-fadeOut .25s ease forwards}#dialog-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#1E3A5F;color:#FFD700;font-weight:600;font-size:13px;cursor:move;user-select:none;white-space:nowrap}#el-info{font-size:11px;font-weight:400;opacity:.85;overflow:hidden;text-overflow:ellipsis;margin:0 8px;flex:1;text-align:center;white-space:nowrap}#quitBtn{background:none;border:none;color:#FFD700;font-size:20px;cursor:pointer;padding:0 4px;line-height:1;opacity:.7;flex-shrink:0}#quitBtn:hover{opacity:1}#path-display{padding:12px 14px;font-family:SF Mono,Cascadia Code,Fira Code,Menlo,Consolas,monospace;font-size:12px;color:#1e293b;background:#f8fafc;border-bottom:1px solid #e2e8f0;word-break:break-all;line-height:1.5;min-height:40px;max-height:120px;overflow-y:auto;white-space:pre-wrap}#dialog-actions{padding:10px 14px;display:flex;justify-content:flex-end;gap:8px}.primary{padding:7px 18px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;background:#1E3A5F;color:#FFD700;transition:background .15s}.primary:hover{background:#2a5070}.primary:active{background:#16304a}.primary.copied{background:#22c55e}@media(prefers-color-scheme:dark){#dialog{background:#1e293b;color:#e2e8f0}#path-display{background:#0f172a;color:#e2e8f0;border-bottom-color:#334155}.primary{background:#4A90D9;color:#fff}.primary:hover{background:#3b78c0}.primary:active{background:#2d5fa0}}.p-url{color:#1d4ed8}.p-sep{color:#475569}.p-corner{color:#92400e}.p-zindex{color:#6d28d9}.p-ctx_key{color:#047857}.p-ctx_str{color:#065f46}.p-ctx_flag{color:#9f1239}.p-path_tid{color:#991b1b}.p-sep_path{color:#15803d}.p-br_open,.p-br_close{color:#92400e}.p-ctx_open,.p-ctx_close{color:#047857}@media(prefers-color-scheme:dark){.p-url{color:#93c5fd}.p-sep{color:#e2e8f0}.p-corner{color:#fde68a}.p-zindex{color:#ddd6fe}.p-ctx_key{color:#6ee7b7}.p-ctx_str{color:#a7f3d0}.p-ctx_flag{color:#fecdd3}.p-path_tid{color:#fca5a5}.p-sep_path{color:#86efac}.p-br_open,.p-br_close{color:#fde68a}.p-ctx_open,.p-ctx_close{color:#6ee7b7}}</style><svg id="overlay" xmlns="http://www.w3.org/2000/svg"><path id="ocean" fill="rgba(0,0,0,0.4)" fill-rule="evenodd" d=""/><path id="island" fill="rgba(255,215,0,0.2)" stroke="#FFD700" stroke-width="2" d=""/></svg><div id="dialog"><div id="dialog-header"><span>Element picker</span><span id="el-info"></span><button id="quitBtn" title="Quit">&times;</button></div><div id="path-display">Hover over an element...</div><div id="dialog-actions"><button id="copyBtn" class="primary">Copy path</button></div></div>';
+  tpl.innerHTML = '<style>*,*::before,*::after{box-sizing:border-box}#overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;cursor:crosshair;pointer-events:auto}#dialog{position:fixed;bottom:20px;right:20px;min-width:190px;max-width:420px;background:#fff;border-radius:10px;box-shadow:0 4px 24px rgba(0,0,0,.25),0 1px 4px rgba(0,0,0,.1);overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;font-size:13px;color:#1e293b;pointer-events:auto;z-index:1;transition:width .12s ease}#dialog.closing{animation:ctp-fadeOut .25s ease forwards}#dialog-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#1E3A5F;color:#FFD700;font-weight:600;font-size:13px;cursor:move;user-select:none;white-space:nowrap}#el-info{font-size:11px;font-weight:400;opacity:.85;overflow:hidden;text-overflow:ellipsis;margin:0 8px;flex:1;text-align:center;white-space:nowrap}#quitBtn{background:none;border:none;color:#FFD700;font-size:20px;cursor:pointer;padding:0 4px;line-height:1;opacity:.7;flex-shrink:0}#quitBtn:hover{opacity:1}#path-display{padding:12px 14px;font-family:SF Mono,Cascadia Code,Fira Code,Menlo,Consolas,monospace;font-size:12px;color:#1e293b;background:#f8fafc;border-bottom:1px solid #e2e8f0;word-break:break-all;line-height:1.5;min-height:40px;max-height:120px;overflow-y:auto;white-space:pre-wrap}#dialog-actions{padding:10px 14px;display:flex;justify-content:flex-end;gap:8px}.primary{padding:7px 18px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;background:#1E3A5F;color:#FFD700;transition:background .15s}.primary:hover{background:#2a5070}.primary:active{background:#16304a}.primary.copied{background:#22c55e}#format-select{font-size:11px;padding:3px 6px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;color:#1e293b;font-family:inherit;cursor:pointer;outline:none}@media(prefers-color-scheme:dark){#dialog{background:#1e293b;color:#e2e8f0}#path-display{background:#0f172a;color:#e2e8f0;border-bottom-color:#334155}.primary{background:#4A90D9;color:#fff}.primary:hover{background:#3b78c0}.primary:active{background:#2d5fa0}#format-select{background:#0f172a;color:#e2e8f0;border-color:#334155}}.p-url{color:#1d4ed8}.p-sep{color:#475569}.p-corner{color:#92400e}.p-zindex{color:#6d28d9}.p-ctx_key{color:#047857}.p-ctx_str{color:#065f46}.p-ctx_flag{color:#9f1239}.p-path_tid{color:#991b1b}.p-sep_path{color:#15803d}.p-br_open,.p-br_close{color:#92400e}.p-ctx_open,.p-ctx_close{color:#047857}@media(prefers-color-scheme:dark){.p-url{color:#93c5fd}.p-sep{color:#e2e8f0}.p-corner{color:#fde68a}.p-zindex{color:#ddd6fe}.p-ctx_key{color:#6ee7b7}.p-ctx_str{color:#a7f3d0}.p-ctx_flag{color:#fecdd3}.p-path_tid{color:#fca5a5}.p-sep_path{color:#86efac}.p-br_open,.p-br_close{color:#fde68a}.p-ctx_open,.p-ctx_close{color:#6ee7b7}}</style><svg id="overlay" xmlns="http://www.w3.org/2000/svg"><path id="ocean" fill="rgba(0,0,0,0.4)" fill-rule="evenodd" d=""/><path id="island" fill="rgba(255,215,0,0.2)" stroke="#FFD700" stroke-width="2" d=""/></svg><div id="dialog"><div id="dialog-header"><span>Element picker</span><span id="el-info"></span><button id="quitBtn" title="Quit">&times;</button></div><div id="path-display">Hover over an element...</div><div id="dialog-actions"><select id="format-select"><option value="auto">Auto</option><option value="xpath">XPath</option><option value="pw">Playwright</option></select><button id="copyBtn" class="primary">Copy path</button></div></div>';
   shadow.appendChild(tpl.content.cloneNode(true));
 
   document.documentElement.appendChild(host);
@@ -319,8 +367,11 @@
   var dialogHeader = shadow.querySelector('#dialog-header');
   var pathDisplay = shadow.querySelector('#path-display');
   var elInfo = shadow.querySelector('#el-info');
+  var formatSelect = shadow.querySelector('#format-select');
   var copyBtn = shadow.querySelector('#copyBtn');
   var quitBtn = shadow.querySelector('#quitBtn');
+  var formatMode = 'auto';
+  formatSelect.addEventListener('change', function() { formatMode = this.value; });
 
   // Highlight overlay
   var hlEl = document.createElement('div');
@@ -449,8 +500,8 @@
     // Center z-index label
     updateCenterLabel(rect, zVal);
 
-    // Path display (always XPath for preview)
-    var pb = buildPathData(el, formatPreview(el), zVal);
+    // Path display
+    var pb = buildPathData(el, getPreviewPath(el, formatMode), zVal);
     currentPath = pb.toText();
     pathDisplay.textContent = '';
     pb.appendTo(pathDisplay);
@@ -460,29 +511,32 @@
     }
   }
 
-  function doCopy() {
+  function doCopy(stayOpen) {
     if (!currentPath) return;
     var zVal = (function() { var z = window.getComputedStyle(currentEl).zIndex; return (z && z !== 'auto') ? z : null; })();
-    var copyText = buildPathData(currentEl, formatPath(currentEl), zVal).toText();
+    var copyText = buildPathData(currentEl, getSelectorPath(currentEl, formatMode), zVal).toText();
     var pct = calcTestidPercent(currentEl);
     console.log('[copy-ui-path-lite] ──────────────────────────────────────');
     console.log('[copy-ui-path-lite] COPIED TO CLIPBOARD:');
     console.log('[copy-ui-path-lite]', copyText);
     console.log('[copy-ui-path-lite] testid coverage:', pct + '%');
     console.log('[copy-ui-path-lite] ──────────────────────────────────────');
-    hidePicker();
+    if (!stayOpen) hidePicker();
     copyBtn.textContent = 'Copied!';
     copyBtn.classList.add('copied');
     copyToClipboard(copyText).then(function () {
       var preview = copyText.length > 50 ? copyText.slice(0, 47) + '...' : copyText;
       showToast('Copied Path : ' + preview + '  [' + pct + '%]');
-      dialog.classList.add('closing');
-      setTimeout(quit, 300);
+      if (stayOpen) {
+        setTimeout(function() { copyBtn.textContent = 'Copy path'; copyBtn.classList.remove('copied'); }, 1200);
+      } else {
+        dialog.classList.add('closing');
+        setTimeout(quit, 300);
+      }
     }).catch(function () {
       console.error('[copy-ui-path-lite] clipboard write FAILED');
       showToast('Clipboard failed', true);
-      dialog.classList.add('closing');
-      setTimeout(quit, 300);
+      if (!stayOpen) { dialog.classList.add('closing'); setTimeout(quit, 300); }
     });
   }
 
@@ -523,7 +577,7 @@
     var el = elFromPoint(e.clientX, e.clientY);
     if (el) {
       updateUI(el);
-      doCopy();
+      doCopy(e.ctrlKey);
     }
   }
 
@@ -556,7 +610,7 @@
     dragging = false;
   }
 
-  copyBtn.addEventListener('click', doCopy);
+  copyBtn.addEventListener('click', function(e) { doCopy(e.ctrlKey); });
   quitBtn.addEventListener('click', quit);
   overlay.addEventListener('mousemove', onMouseMove);
   overlay.addEventListener('click', onOverlayClick);
