@@ -237,13 +237,9 @@
   function elFromPoint(x, y) {
     host.style.setProperty('display', 'none', 'important');
     hlEl.style.setProperty('display', 'none', 'important');
-    ttEl.style.setProperty('display', 'none', 'important');
     var el = document.elementFromPoint(x, y);
     host.style.removeProperty('display');
-    if (currentEl) {
-      hlEl.style.setProperty('display', 'block', 'important');
-      ttEl.style.setProperty('display', 'block', 'important');
-    }
+    if (currentEl) hlEl.style.setProperty('display', 'block', 'important');
     return el;
   }
 
@@ -295,7 +291,6 @@
   function hidePicker() {
     host.style.display = 'none';
     hlEl.style.display = 'none';
-    ttEl.style.display = 'none';
     hideCornerLabels();
     centerLabel.style.display = 'none';
   }
@@ -312,7 +307,7 @@
 
   var shadow = host.attachShadow({ mode: 'closed' });
   var tpl = document.createElement('template');
-  tpl.innerHTML = '<style>*,*::before,*::after{box-sizing:border-box}#overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;cursor:crosshair;pointer-events:auto}#dialog{position:fixed;bottom:20px;right:20px;min-width:190px;max-width:420px;background:#fff;border-radius:10px;box-shadow:0 4px 24px rgba(0,0,0,.25),0 1px 4px rgba(0,0,0,.1);overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;font-size:13px;color:#1e293b;pointer-events:auto;z-index:1;transition:width .12s ease}#dialog.closing{animation:ctp-fadeOut .25s ease forwards}#dialog-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#1E3A5F;color:#FFD700;font-weight:600;font-size:13px;cursor:move;user-select:none;white-space:nowrap}#quitBtn{background:none;border:none;color:#FFD700;font-size:20px;cursor:pointer;padding:0 4px;line-height:1;opacity:.7;flex-shrink:0}#quitBtn:hover{opacity:1}#path-display{padding:12px 14px;font-family:SF Mono,Cascadia Code,Fira Code,Menlo,Consolas,monospace;font-size:12px;color:#1e293b;background:#f8fafc;border-bottom:1px solid #e2e8f0;word-break:break-all;line-height:1.5;min-height:40px;max-height:120px;overflow-y:auto;white-space:pre-wrap}#dialog-actions{padding:10px 14px;display:flex;justify-content:flex-end;gap:8px}.primary{padding:7px 18px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;background:#1E3A5F;color:#FFD700;transition:background .15s}.primary:hover{background:#2a5070}.primary:active{background:#16304a}.primary.copied{background:#22c55e}@media(prefers-color-scheme:dark){#dialog{background:#1e293b;color:#e2e8f0}#path-display{background:#0f172a;color:#e2e8f0;border-bottom-color:#334155}.primary{background:#4A90D9;color:#fff}.primary:hover{background:#3b78c0}.primary:active{background:#2d5fa0}}.p-url{color:#1d4ed8}.p-sep{color:#475569}.p-corner{color:#92400e}.p-zindex{color:#6d28d9}.p-ctx_key{color:#047857}.p-ctx_str{color:#065f46}.p-ctx_flag{color:#9f1239}.p-path_tid{color:#991b1b}.p-sep_path{color:#15803d}.p-br_open,.p-br_close{color:#92400e}.p-ctx_open,.p-ctx_close{color:#047857}@media(prefers-color-scheme:dark){.p-url{color:#93c5fd}.p-sep{color:#e2e8f0}.p-corner{color:#fde68a}.p-zindex{color:#ddd6fe}.p-ctx_key{color:#6ee7b7}.p-ctx_str{color:#a7f3d0}.p-ctx_flag{color:#fecdd3}.p-path_tid{color:#fca5a5}.p-sep_path{color:#86efac}.p-br_open,.p-br_close{color:#fde68a}.p-ctx_open,.p-ctx_close{color:#6ee7b7}}</style><svg id="overlay" xmlns="http://www.w3.org/2000/svg"><path id="ocean" fill="rgba(0,0,0,0.4)" fill-rule="evenodd" d=""/><path id="island" fill="rgba(255,215,0,0.2)" stroke="#FFD700" stroke-width="2" d=""/></svg><div id="dialog"><div id="dialog-header"><span>Element picker</span><button id="quitBtn" title="Quit">&times;</button></div><div id="path-display">Hover over an element...</div><div id="dialog-actions"><button id="copyBtn" class="primary">Copy path</button></div></div>';
+  tpl.innerHTML = '<style>*,*::before,*::after{box-sizing:border-box}#overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;cursor:crosshair;pointer-events:auto}#dialog{position:fixed;bottom:20px;right:20px;min-width:190px;max-width:420px;background:#fff;border-radius:10px;box-shadow:0 4px 24px rgba(0,0,0,.25),0 1px 4px rgba(0,0,0,.1);overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;font-size:13px;color:#1e293b;pointer-events:auto;z-index:1;transition:width .12s ease}#dialog.closing{animation:ctp-fadeOut .25s ease forwards}#dialog-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#1E3A5F;color:#FFD700;font-weight:600;font-size:13px;cursor:move;user-select:none;white-space:nowrap}#el-info{font-size:11px;font-weight:400;opacity:.85;overflow:hidden;text-overflow:ellipsis;margin:0 8px;flex:1;text-align:center;white-space:nowrap}#quitBtn{background:none;border:none;color:#FFD700;font-size:20px;cursor:pointer;padding:0 4px;line-height:1;opacity:.7;flex-shrink:0}#quitBtn:hover{opacity:1}#path-display{padding:12px 14px;font-family:SF Mono,Cascadia Code,Fira Code,Menlo,Consolas,monospace;font-size:12px;color:#1e293b;background:#f8fafc;border-bottom:1px solid #e2e8f0;word-break:break-all;line-height:1.5;min-height:40px;max-height:120px;overflow-y:auto;white-space:pre-wrap}#dialog-actions{padding:10px 14px;display:flex;justify-content:flex-end;gap:8px}.primary{padding:7px 18px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;background:#1E3A5F;color:#FFD700;transition:background .15s}.primary:hover{background:#2a5070}.primary:active{background:#16304a}.primary.copied{background:#22c55e}@media(prefers-color-scheme:dark){#dialog{background:#1e293b;color:#e2e8f0}#path-display{background:#0f172a;color:#e2e8f0;border-bottom-color:#334155}.primary{background:#4A90D9;color:#fff}.primary:hover{background:#3b78c0}.primary:active{background:#2d5fa0}}.p-url{color:#1d4ed8}.p-sep{color:#475569}.p-corner{color:#92400e}.p-zindex{color:#6d28d9}.p-ctx_key{color:#047857}.p-ctx_str{color:#065f46}.p-ctx_flag{color:#9f1239}.p-path_tid{color:#991b1b}.p-sep_path{color:#15803d}.p-br_open,.p-br_close{color:#92400e}.p-ctx_open,.p-ctx_close{color:#047857}@media(prefers-color-scheme:dark){.p-url{color:#93c5fd}.p-sep{color:#e2e8f0}.p-corner{color:#fde68a}.p-zindex{color:#ddd6fe}.p-ctx_key{color:#6ee7b7}.p-ctx_str{color:#a7f3d0}.p-ctx_flag{color:#fecdd3}.p-path_tid{color:#fca5a5}.p-sep_path{color:#86efac}.p-br_open,.p-br_close{color:#fde68a}.p-ctx_open,.p-ctx_close{color:#6ee7b7}}</style><svg id="overlay" xmlns="http://www.w3.org/2000/svg"><path id="ocean" fill="rgba(0,0,0,0.4)" fill-rule="evenodd" d=""/><path id="island" fill="rgba(255,215,0,0.2)" stroke="#FFD700" stroke-width="2" d=""/></svg><div id="dialog"><div id="dialog-header"><span>Element picker</span><span id="el-info"></span><button id="quitBtn" title="Quit">&times;</button></div><div id="path-display">Hover over an element...</div><div id="dialog-actions"><button id="copyBtn" class="primary">Copy path</button></div></div>';
   shadow.appendChild(tpl.content.cloneNode(true));
 
   document.documentElement.appendChild(host);
@@ -323,6 +318,7 @@
   var dialog = shadow.querySelector('#dialog');
   var dialogHeader = shadow.querySelector('#dialog-header');
   var pathDisplay = shadow.querySelector('#path-display');
+  var elInfo = shadow.querySelector('#el-info');
   var copyBtn = shadow.querySelector('#copyBtn');
   var quitBtn = shadow.querySelector('#quitBtn');
 
@@ -330,11 +326,6 @@
   var hlEl = document.createElement('div');
   hlEl.style.cssText = 'position:fixed;pointer-events:none;border:2px solid #4A90D9;z-index:2147483646;display:none;';
   document.body.appendChild(hlEl);
-
-  // Tooltip
-  var ttEl = document.createElement('div');
-  ttEl.style.cssText = 'position:fixed;z-index:2147483647;background:rgba(30,41,59,0.92);color:#FFD700;font:12px/1.4 SF Mono,Cascadia Code,Menlo,Consolas,monospace;padding:5px 10px;border-radius:4px;pointer-events:none;white-space:nowrap;display:none;box-shadow:0 2px 8px rgba(0,0,0,0.3);';
-  document.body.appendChild(ttEl);
 
   // Corner labels
   var cornerLabels = [];
@@ -438,7 +429,7 @@
     hlEl.style.height = rect.height + 'px';
     hlEl.style.display = 'block';
 
-    // Tooltip with element info
+    // Element info in dialog header
     var tag = el.tagName.toLowerCase();
     var id = el.id ? '#' + el.id : '';
     var cls = el.className && typeof el.className === 'string'
@@ -447,15 +438,10 @@
     var tid = getTestId(el);
     var tidStr = tid ? ' [' + tid.name + '=' + tid.value + ']' : '';
     var dim = Math.round(rect.width) + '\u00d7' + Math.round(rect.height);
-    ttEl.textContent = tag + id + cls + tidStr + ' ' + dim;
-    var tx = lastX + 18;
-    var ty = lastY + 18;
-    var ttRect = ttEl.getBoundingClientRect();
-    if (tx + ttRect.width > vw) tx = lastX - ttRect.width - 18;
-    if (ty + ttRect.height > vh) ty = lastY - ttRect.height - 18;
-    ttEl.style.left = tx + 'px';
-    ttEl.style.top = ty + 'px';
-    ttEl.style.display = 'block';
+    elInfo.textContent = tag + id + cls + tidStr + ' ' + dim;
+
+    // Hide crosshair on small elements
+    overlay.style.cursor = (rect.width < SIZE_THRESHOLD_W || rect.height < SIZE_THRESHOLD_H) ? 'default' : 'crosshair';
 
     // Corner labels
     updateCornerLabels(rect);
@@ -509,7 +495,6 @@
     document.removeEventListener('keydown', onKeyDown, true);
     injectedStyle.remove();
     hlEl.remove();
-    ttEl.remove();
     cornerTl.remove();
     cornerTr.remove();
     cornerBl.remove();
