@@ -160,11 +160,13 @@
   }
 
   function stepBack() {
-    if (!currentEl) return;
-    var parent = currentEl.parentElement;
-    if (!parent || parent === document.body || parent === document.documentElement) return;
+    if (!currentEl || savedPath.length === 0) return;
+    var idx = savedPath.indexOf(currentEl);
+    if (idx < 0 || idx >= savedPath.length - 1) return;
+    var parentEl = savedPath[idx + 1];
+    if (!parentEl) return;
     isNavigating = true;
-    updateUI(parent);
+    updateUI(parentEl);
     updateNavButtons();
     isNavigating = false;
   }
@@ -173,10 +175,10 @@
     if (!currentEl || savedPath.length === 0) return;
     var idx = savedPath.indexOf(currentEl);
     if (idx <= 0) return;
-    var nextEl = savedPath[idx - 1];
-    if (!nextEl) return;
+    var childEl = savedPath[idx - 1];
+    if (!childEl) return;
     isNavigating = true;
-    updateUI(nextEl);
+    updateUI(childEl);
     updateNavButtons();
     isNavigating = false;
   }
@@ -192,14 +194,13 @@
   }
 
   function updateNavButtons() {
-    if (!currentEl) {
+    if (!currentEl || savedPath.length === 0) {
       stepBackBtn.disabled = true;
       stepNextBtn.disabled = true;
       return;
     }
-    var parent = currentEl.parentElement;
-    stepBackBtn.disabled = !parent || parent === document.body || parent === document.documentElement;
     var idx = savedPath.indexOf(currentEl);
+    stepBackBtn.disabled = idx < 0 || idx >= savedPath.length - 1;
     stepNextBtn.disabled = idx <= 0;
   }
 
