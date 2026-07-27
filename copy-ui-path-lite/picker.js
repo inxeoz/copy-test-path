@@ -160,15 +160,25 @@
   }
 
   function stepBack() {
-    if (pathIndex >= savedPath.length - 1) return;
-    pathIndex++;
-    navigateToPathElement();
+    if (!currentEl) return;
+    var parent = currentEl.parentElement;
+    if (!parent || parent === document.body || parent === document.documentElement) return;
+    isNavigating = true;
+    updateUI(parent);
+    updateNavButtons();
+    isNavigating = false;
   }
 
   function stepNext() {
-    if (pathIndex <= 0) return;
-    pathIndex--;
-    navigateToPathElement();
+    if (!currentEl || savedPath.length === 0) return;
+    var idx = savedPath.indexOf(currentEl);
+    if (idx <= 0) return;
+    var nextEl = savedPath[idx - 1];
+    if (!nextEl) return;
+    isNavigating = true;
+    updateUI(nextEl);
+    updateNavButtons();
+    isNavigating = false;
   }
 
   function navigateToPathElement() {
@@ -182,8 +192,15 @@
   }
 
   function updateNavButtons() {
-    stepBackBtn.disabled = pathIndex >= savedPath.length - 1;
-    stepNextBtn.disabled = pathIndex <= 0;
+    if (!currentEl) {
+      stepBackBtn.disabled = true;
+      stepNextBtn.disabled = true;
+      return;
+    }
+    var parent = currentEl.parentElement;
+    stepBackBtn.disabled = !parent || parent === document.body || parent === document.documentElement;
+    var idx = savedPath.indexOf(currentEl);
+    stepNextBtn.disabled = idx <= 0;
   }
 
   function buildPlaywrightPath(el) {
@@ -654,7 +671,6 @@
       rafPending = false;
       var el = elFromPoint(lastX, lastY);
       if (el) {
-        savePath(el);
         updateUI(el);
       }
     });
@@ -693,7 +709,10 @@
     freezeHint.style.display = 'none';
     showToast('Frozen — left click to unfreeze');
     var el = elFromPoint(e.clientX, e.clientY);
-    if (el) updateUI(el);
+    if (el) {
+      savePath(el);
+      updateUI(el);
+    }
   }
 
   function onKeyDown(e) {
