@@ -117,9 +117,32 @@
     return buildXPath(el);
   }
 
-  function buildCornerAnnotation(el) {
+  function buildCornerAnnotation(el, zIndex) {
     var r = el.getBoundingClientRect();
-    return '[tl=[' + Math.round(r.left) + ',' + Math.round(r.top) + '], tr=[' + Math.round(r.right) + ',' + Math.round(r.top) + '], bl=[' + Math.round(r.left) + ',' + Math.round(r.bottom) + '], br=[' + Math.round(r.right) + ',' + Math.round(r.bottom) + ']]';
+    var s = '[tl=[' + Math.round(r.left) + ',' + Math.round(r.top) + '], tr=[' + Math.round(r.right) + ',' + Math.round(r.top) + '], bl=[' + Math.round(r.left) + ',' + Math.round(r.bottom) + '], br=[' + Math.round(r.right) + ',' + Math.round(r.bottom) + ']';
+    if (zIndex) s += ' z-index=' + zIndex;
+    return s + ']';
+  }
+
+  function buildElementContext(el) {
+    var parts = [];
+    var text = (el.textContent || '').trim().replace(/\s+/g, ' ');
+    if (text) {
+      text = text.length > 40 ? text.slice(0, 37) + '...' : text;
+      parts.push('text="' + text + '"');
+    }
+    var role = el.getAttribute('role');
+    if (role) parts.push('role="' + role + '"');
+    if (el.disabled) parts.push('disabled');
+    if (el.checked) parts.push('checked');
+    if (el.selected) parts.push('selected');
+    var rect2 = el.getBoundingClientRect();
+    var scrollX = rect2.left + window.scrollX;
+    var scrollY = rect2.top + window.scrollY;
+    if (scrollX !== 0 || scrollY !== 0) {
+      parts.push('scroll="' + Math.round(scrollX) + ',' + Math.round(scrollY) + '"');
+    }
+    return parts.length > 0 ? ' [' + parts.join(' ') + ']' : '';
   }
 
   function calcTestidPercent(el) {
@@ -201,6 +224,7 @@
     hlEl.style.display = 'none';
     ttEl.style.display = 'none';
     hideCornerLabels();
+    centerLabel.style.display = 'none';
   }
 
   // ── UI ─────────────────────────────────────────────────────────────
@@ -252,6 +276,11 @@
   var cornerBl = cornerLabels[2];
   var cornerBr = cornerLabels[3];
 
+  // Center z-index label
+  var centerLabel = document.createElement('div');
+  centerLabel.style.cssText = 'position:fixed;z-index:2147483646;font:12px/1 SF Mono,Cascadia Code,Fira Code,Menlo,monospace;color:#1E3A5F;background:#FFD700;padding:2px 6px;border-radius:4px;pointer-events:none;display:none;';
+  document.body.appendChild(centerLabel);
+
   var currentEl = null;
   var currentPath = '';
   var dragging = false;
@@ -261,7 +290,14 @@
   var lastX = 0;
   var lastY = 0;
 
+  var SIZE_THRESHOLD_W = 100;
+  var SIZE_THRESHOLD_H = 40;
+
   function updateCornerLabels(rect) {
+    if (rect.width < SIZE_THRESHOLD_W || rect.height < SIZE_THRESHOLD_H) {
+      hideCornerLabels();
+      return;
+    }
     var tlX = Math.round(rect.left);
     var tlY = Math.round(rect.top);
     var trX = Math.round(rect.right);
@@ -299,12 +335,24 @@
     cornerBr.style.display = 'none';
   }
 
+  function updateCenterLabel(rect, zVal) {
+    if (!zVal || rect.width < SIZE_THRESHOLD_W || rect.height < SIZE_THRESHOLD_H) {
+      centerLabel.style.display = 'none';
+      return;
+    }
+    centerLabel.textContent = 'z: ' + zVal;
+    centerLabel.style.left = (rect.left + rect.width / 2) + 'px';
+    centerLabel.style.top = (rect.top + rect.height / 2 - 10) + 'px';
+    centerLabel.style.display = 'block';
+  }
+
   function updateUI(el) {
     if (!el || el === currentEl) return;
     currentEl = el;
     var rect = el.getBoundingClientRect();
     var vw = window.innerWidth;
     var vh = window.innerHeight;
+    var zVal = (function() { var z = window.getComputedStyle(el).zIndex; return (z && z !== 'auto') ? z : null; })();
 
     // SVG spotlight
     ocean.setAttribute('d', 'M0 0h' + vw + 'v' + vh + 'h-' + vw + 'z M' + rect.left + ' ' + rect.top + 'h' + rect.width + 'v' + rect.height + 'h-' + rect.width + 'z');
@@ -339,8 +387,11 @@
     // Corner labels
     updateCornerLabels(rect);
 
+    // Center z-index label
+    updateCenterLabel(rect, zVal);
+
     // Path display (always XPath for preview)
-    currentPath = location.href + ' | ' + formatPreview(el) + ' ' + buildCornerAnnotation(el);
+    currentPath = location.href + ' | ' + formatPreview(el) + ' ' + buildCornerAnnotation(el, zVal) + buildElementContext(el);
     pathDisplay.textContent = currentPath;
     if (!dragging) {
       var w = Math.min(420, Math.max(190, Math.ceil(currentPath.length * 7.5) + 56));
@@ -350,7 +401,8 @@
 
   function doCopy() {
     if (!currentPath) return;
-    var copyText = location.href + ' | ' + formatPath(currentEl) + ' ' + buildCornerAnnotation(currentEl);
+    var zVal = (function() { var z = window.getComputedStyle(currentEl).zIndex; return (z && z !== 'auto') ? z : null; })();
+    var copyText = location.href + ' | ' + formatPath(currentEl) + ' ' + buildCornerAnnotation(currentEl, zVal) + buildElementContext(currentEl);
     var pct = calcTestidPercent(currentEl);
     console.log('[copy-ui-path-lite] ──────────────────────────────────────');
     console.log('[copy-ui-path-lite] COPIED TO CLIPBOARD:');
@@ -387,6 +439,7 @@
     cornerTr.remove();
     cornerBl.remove();
     cornerBr.remove();
+    centerLabel.remove();
     host.remove();
   }
 
