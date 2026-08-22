@@ -27,6 +27,7 @@
     CTX_STR:  'ctx_str',
     CTX_FLAG: 'ctx_flag',
     CTX_CLOSE:'ctx_close',
+    SWATCH:   'swatch',
   };
 
   function PathBuilder() {
@@ -37,11 +38,19 @@
     return this;
   };
   PathBuilder.prototype.toText = function() {
-    return this.list.map(function(s) { return s.value; }).join('');
+    return this.list.filter(function(s){ return s.type !== PART.SWATCH; }).map(function(s) { return s.value; }).join('');
   };
   PathBuilder.prototype.appendTo = function(parent) {
     for (var i = 0; i < this.list.length; i++) {
       var s = this.list[i];
+      if(s.type === PART.SWATCH){
+        var sw = document.createElement('span');
+        sw.className = 'p-swatch';
+        sw.style.cssText = 'display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:middle;margin:0 3px 0 4px;border:1px solid rgba(0,0,0,0.15);box-shadow:inset 0 0 0 1px rgba(255,255,255,0.6);background:' + s.value + ';';
+        sw.title = s.value;
+        parent.appendChild(sw);
+        continue;
+      }
       var span = document.createElement('span');
       span.className = 'p-' + s.type;
       span.textContent = s.value;
@@ -314,40 +323,51 @@
     segs.push({ type: PART.CTX_KEY, value: ' area' });
     segs.push({ type: PART.CTX_STR, value: '="' + Math.round(r.width) + 'x' + Math.round(r.height) + '"' });
     // computed styles — only if config chose props (default: original, no extra)
+    // swatch right beside each color/bg/background-image inside computed
     try {
       var cfg = (typeof cfgProps !== 'undefined' && cfgProps) ? cfgProps : [];
       if(!cfg || !cfg.length) { try{ var _r=localStorage.getItem('ctp-lite-computed-props'); if(_r) cfg=JSON.parse(_r); }catch(e){} }
       if(!cfg || !cfg.length) { /* no config -> original context */ }
       else {
         var cs = window.getComputedStyle(el);
-        // separate quick color/bg if requested (with hex for color)
-        if(cfg.indexOf('color')!==-1){
-          var cRaw = cs.color;
-          var c = cRaw ? (rgbToHex(cRaw) || cRaw) : cRaw;
-          segs.push({ type: PART.CTX_KEY, value: ', color' });
-          segs.push({ type: PART.CTX_STR, value: '="' + c + '"' });
-        }
-        if(cfg.indexOf('background-color')!==-1){
-          var bgRaw = cs.backgroundColor;
-          var bg = bgRaw ? rgbToHex(bgRaw) : null;
-          if (bg == null) bg = bgRaw;
-          segs.push({ type: PART.CTX_KEY, value: ', bg-color' });
-          segs.push({ type: PART.CTX_STR, value: '="' + bg + '"' });
-        }
-        var parts = [];
+        segs.push({ type: PART.CTX_KEY, value: ', computed' });
+        segs.push({ type: PART.CTX_STR, value: '="' });
+        var first = true;
         for (var j = 0; j < cfg.length; j++) {
           var prop = cfg[j];
-          // already shown as separate color/bg, skip duplicate in computed to avoid noise? keep all for now but skip those two to avoid dup
-          if(prop==='color' || prop==='background-color') continue;
           var val = cs.getPropertyValue(prop);
-          if (val) parts.push(prop + ': ' + val);
+          if (!val || val==='none') continue;
+          if (!first) segs.push({ type: PART.CTX_STR, value: '; ' });
+          first = false;
+          if(prop==='color'){
+            var cRaw=val; var c= rgbToHex(cRaw) || cRaw;
+            segs.push({ type: PART.CTX_STR, value: prop + ': ' + c });
+            if(cRaw && cRaw!=='rgba(0, 0, 0, 0)' && cRaw!=='transparent') segs.push({ type: PART.SWATCH, value: cRaw });
+            continue;
+          }
+          if(prop==='background-color'){
+            var bgRaw=val; var bg= rgbToHex(bgRaw) || bgRaw; if(bg==='null') bg=bgRaw;
+            segs.push({ type: PART.CTX_STR, value: 'background-color: ' + bg });
+            if(bgRaw && bgRaw!=='rgba(0, 0, 0, 0)' && bgRaw!=='transparent' && bgRaw!=='none') segs.push({ type: PART.SWATCH, value: bgRaw });
+            continue;
+          }
+          if(prop==='background-image'){
+            segs.push({ type: PART.CTX_STR, value: prop + ': ' + val });
+            if(val && val!=='none') segs.push({ type: PART.SWATCH, value: val });
+            continue;
+          }
+          segs.push({ type: PART.CTX_STR, value: prop + ': ' + val });
         }
-        if(parts.length){
-          var computed = parts.join('; ').replace(/"/g, "'");
-          segs.push({ type: PART.CTX_KEY, value: ', computed' });
-          segs.push({ type: PART.CTX_STR, value: '="' + computed + '"' });
-        } else if(cfg.indexOf('color')!==-1 || cfg.indexOf('background-color')!==-1){
-          // only color/bg were selected, no extra computed needed (already added)
+        // close quote - if nothing was added, pop opening
+        if(first){
+          // no valid props, remove the opening we pushed
+          segs.pop(); segs.pop();
+        } else {
+          var last = segs[segs.length-1];
+          // ensure we close the string
+          segs.push({ type: PART.CTX_STR, value: '"' });
+          // escape quotes inside: already handled by not using " in values, but ensure
+          // replace stray " in the computed parts is done via the pushes (values contain no ")
         }
       }
     } catch(e) {}
