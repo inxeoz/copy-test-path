@@ -343,11 +343,7 @@
     }
     segs.push({ type: PART.CTX_KEY, value: ' area' });
     segs.push({ type: PART.CTX_STR, value: '="' + Math.round(r.width) + 'x' + Math.round(r.height) + '"' });
-    // center — the one truth: viewport center in CSS pixels (also true screen pixels = * devicePixelRatio)
-    var cx = Math.round(r.left + r.width / 2);
-    var cy = Math.round(r.top + r.height / 2);
-    segs.push({ type: PART.CTX_KEY, value: ', center' });
-    segs.push({ type: PART.CTX_STR, value: '="' + cx + ',' + cy + '"' });
+
     // computed styles — only if config chose props (default: original, no extra)
     // swatch right beside each color/bg/background-image inside computed
     try {
