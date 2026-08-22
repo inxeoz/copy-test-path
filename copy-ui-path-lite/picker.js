@@ -267,8 +267,20 @@
     if(!val) return null;
     var m = val.match(/rgba?\([^)]+\)|hsla?\([^)]+\)|#[0-9a-fA-F]{3,8}\b/);
     if(m) return m[0];
-    // named colors fallback: if single word color
-    if(/^[a-z]+$/i.test(val.trim()) && val.trim().toLowerCase()!=='none' && val.trim().toLowerCase()!=='transparent') return val.trim();
+    var named = val.match(/\b(aqua|black|blue|fuchsia|gray|grey|green|lime|maroon|navy|olive|purple|red|silver|teal|white|yellow|orange|aliceblue|antiquewhite|aqua|aquamarine|azure|beige|bisque|blanchedalmond|blueviolet|brown|burlywood|cadetblue|chartreuse|chocolate|coral|cornflowerblue|cornsilk|crimson|cyan|darkblue|darkcyan|darkgoldenrod|darkgray|darkgreen|darkkhaki|darkmagenta|darkolivegreen|darkorange|darkorchid|darkred|darksalmon|darkseagreen|darkslateblue|darkslategray|darkturquoise|darkviolet|deeppink|deepskyblue|dimgray|dodgerblue|firebrick|floralwhite|forestgreen|gainsboro|ghostwhite|gold|goldenrod|greenyellow|honeydew|hotpink|indianred|indigo|ivory|khaki|lavender|lavenderblush|lawngreen|lemonchiffon|lightblue|lightcoral|lightcyan|lightgoldenrodyellow|lightgray|lightgreen|lightpink|lightsalmon|lightseagreen|lightskyblue|lightslategray|lightsteelblue|lightyellow|limegreen|linen|magenta|mediumaquamarine|mediumblue|mediumorchid|mediumpurple|mediumseagreen|mediumslateblue|mediumspringgreen|mediumturquoise|mediumvioletred|midnightblue|mintcream|mistyrose|moccasin|navajowhite|oldlace|olivedrab|orangered|orchid|palegoldenrod|palegreen|paleturquoise|palevioletred|papayawhip|peachpuff|peru|pink|plum|powderblue|rosybrown|royalblue|saddlebrown|salmon|sandybrown|seagreen|seashell|sienna|skyblue|slateblue|slategray|snow|springgreen|steelblue|tan|thistle|tomato|turquoise|violet|wheat|whitesmoke|yellowgreen|currentColor)\b/i);
+    if(named) return named[0];
+    return null;
+  }
+  function effectiveBg(el){
+    var cur=el;
+    while(cur && cur!==document.documentElement){
+      try{
+        var cs=window.getComputedStyle(cur);
+        var bg=cs.backgroundColor;
+        if(bg && bg!=='rgba(0, 0, 0, 0)' && bg!=='transparent' && bg!=='none') return bg;
+      }catch(e){}
+      cur=cur.parentElement;
+    }
     return null;
   }
   function buildContextParts(el) {
@@ -348,38 +360,37 @@
           if (!val || val==='none') continue;
           if (!first) segs.push({ type: PART.CTX_STR, value: '; ' });
           first = false;
-          // color props get hex for readability + swatch
+          // any prop that visibly shows a color -> swatch right beside it
+          // handle hex for plain color props
+          if(prop==='color' || prop==='background-color'){
+            var raw=val; var hex= rgbToHex(raw) || raw; if(hex==='null' || hex==null) hex=raw;
+            segs.push({ type: PART.CTX_STR, value: prop + ': ' + hex });
+            if(raw && raw!=='rgba(0, 0, 0, 0)' && raw!=='transparent' && raw!=='none'){
+              var col = extractColor(raw) || raw;
+              segs.push({ type: PART.SWATCH, value: col });
+            } else if(prop==='background-color' && (raw==='transparent' || raw==='rgba(0, 0, 0, 0)')){
+              var eff=effectiveBg(el);
+              if(eff) segs.push({ type: PART.SWATCH, value: eff });
+            }
+            continue;
+          }
           if(COLOR_PROPS.indexOf(prop)!==-1){
             var cRaw=val; var c= rgbToHex(cRaw) || cRaw;
-            // for hex conversion, if rgbToHex returns null (transparent) keep raw
             if(c==='null' || c==null) c=cRaw;
             segs.push({ type: PART.CTX_STR, value: prop + ': ' + c });
-            if(cRaw && cRaw!=='rgba(0, 0, 0, 0)' && cRaw!=='transparent' && cRaw!=='none') segs.push({ type: PART.SWATCH, value: cRaw });
+            var col3 = extractColor(cRaw) || cRaw;
+            if(col3 && col3!=='rgba(0, 0, 0, 0)' && col3!=='transparent' && col3!=='none') segs.push({ type: PART.SWATCH, value: col3 });
             continue;
           }
+          // generic: background-image, gradients, shadows, borders, etc.
+          segs.push({ type: PART.CTX_STR, value: prop + ': ' + val });
           if(prop==='background-image'){
-            segs.push({ type: PART.CTX_STR, value: prop + ': ' + val });
             if(val && val!=='none') segs.push({ type: PART.SWATCH, value: val });
-            continue;
+          } else {
+            var col4 = extractColor(val);
+            if(col4) segs.push({ type: PART.SWATCH, value: col4 });
           }
-          if(prop==='background-color'){
-            var bgRaw=val; var bg= rgbToHex(bgRaw) || bgRaw; if(bg==='null' || bg==null) bg=bgRaw;
-            segs.push({ type: PART.CTX_STR, value: 'background-color: ' + bg });
-            if(bgRaw && bgRaw!=='rgba(0, 0, 0, 0)' && bgRaw!=='transparent' && bgRaw!=='none') segs.push({ type: PART.SWATCH, value: bgRaw });
-            continue;
-          }
-          if(prop==='box-shadow' || prop==='text-shadow'){
-            segs.push({ type: PART.CTX_STR, value: prop + ': ' + val });
-            var col = extractColor(val);
-            if(col) segs.push({ type: PART.SWATCH, value: col });
-            continue;
-          }
-          if(prop==='border'){
-            segs.push({ type: PART.CTX_STR, value: prop + ': ' + val });
-            var col2 = extractColor(val);
-            if(col2) segs.push({ type: PART.SWATCH, value: col2 });
-            continue;
-          }
+          continue;
           segs.push({ type: PART.CTX_STR, value: prop + ': ' + val });
         }
         // close quote - if nothing was added, pop opening
@@ -561,7 +572,7 @@
 
   // ── Computed props config (localStorage) ──────────────────────────
   var CFG_KEY = 'ctp-lite-computed-props';
-  var AVAILABLE_PROPS = ['color','background-color','background-image','border-color','border-top-color','border-right-color','border-bottom-color','border-left-color','outline-color','text-decoration-color','column-rule-color','caret-color','fill','stroke','accent-color','box-shadow','text-shadow','border','border-radius','display','position','width','height','font-family','font-size','font-weight','line-height','letter-spacing','text-align','opacity','visibility','overflow','margin','padding','gap','flex','flex-direction','justify-content','align-items','grid','cursor','transform','transition','animation'];
+  var AVAILABLE_PROPS = ['color','background-color','background-image','border-color','border-top-color','border-right-color','border-bottom-color','border-left-color','outline-color','text-decoration-color','text-emphasis-color','-webkit-text-fill-color','-webkit-text-stroke-color','column-rule-color','caret-color','fill','stroke','flood-color','lighting-color','stop-color','accent-color','scrollbar-color','box-shadow','text-shadow','filter','border','outline','border-radius','display','position','width','height','font-family','font-size','font-weight','line-height','letter-spacing','text-align','opacity','visibility','overflow','margin','padding','gap','flex','flex-direction','justify-content','align-items','grid','cursor','transform','transition','animation'];
   var PRESETS = {
     color: ['color','background-color'],
     essentials: ['color','background-color','font-size','font-family','display','width','height','border-radius','box-shadow'],
