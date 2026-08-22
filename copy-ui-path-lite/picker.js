@@ -245,6 +245,14 @@
     return buildXPath(el);
   }
 
+  function rgbToHex(str) {
+    var m = str.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+))?\s*\)$/);
+    if (!m) return null;
+    if (m[4] !== undefined && parseFloat(m[4]) === 0) return null;
+    if (m[4] !== undefined && parseFloat(m[4]) !== 1) return str;
+    var r = +m[1], g = +m[2], b = +m[3];
+    return '#' + [r, g, b].map(function(x){ return x.toString(16).padStart(2,'0'); }).join('');
+  }
   function buildContextParts(el) {
     var segs = [];
     var text = (el.textContent || '').trim().replace(/\s+/g, ' ');
@@ -305,6 +313,44 @@
     }
     segs.push({ type: PART.CTX_KEY, value: ' area' });
     segs.push({ type: PART.CTX_STR, value: '="' + Math.round(r.width) + 'x' + Math.round(r.height) + '"' });
+    // computed styles — only if config chose props (default: original, no extra)
+    try {
+      var cfg = (typeof cfgProps !== 'undefined' && cfgProps) ? cfgProps : [];
+      if(!cfg || !cfg.length) { try{ var _r=localStorage.getItem('ctp-lite-computed-props'); if(_r) cfg=JSON.parse(_r); }catch(e){} }
+      if(!cfg || !cfg.length) { /* no config -> original context */ }
+      else {
+        var cs = window.getComputedStyle(el);
+        // separate quick color/bg if requested (with hex for color)
+        if(cfg.indexOf('color')!==-1){
+          var cRaw = cs.color;
+          var c = cRaw ? (rgbToHex(cRaw) || cRaw) : cRaw;
+          segs.push({ type: PART.CTX_KEY, value: ', color' });
+          segs.push({ type: PART.CTX_STR, value: '="' + c + '"' });
+        }
+        if(cfg.indexOf('background-color')!==-1){
+          var bgRaw = cs.backgroundColor;
+          var bg = bgRaw ? rgbToHex(bgRaw) : null;
+          if (bg == null) bg = bgRaw;
+          segs.push({ type: PART.CTX_KEY, value: ', bg-color' });
+          segs.push({ type: PART.CTX_STR, value: '="' + bg + '"' });
+        }
+        var parts = [];
+        for (var j = 0; j < cfg.length; j++) {
+          var prop = cfg[j];
+          // already shown as separate color/bg, skip duplicate in computed to avoid noise? keep all for now but skip those two to avoid dup
+          if(prop==='color' || prop==='background-color') continue;
+          var val = cs.getPropertyValue(prop);
+          if (val) parts.push(prop + ': ' + val);
+        }
+        if(parts.length){
+          var computed = parts.join('; ').replace(/"/g, "'");
+          segs.push({ type: PART.CTX_KEY, value: ', computed' });
+          segs.push({ type: PART.CTX_STR, value: '="' + computed + '"' });
+        } else if(cfg.indexOf('color')!==-1 || cfg.indexOf('background-color')!==-1){
+          // only color/bg were selected, no extra computed needed (already added)
+        }
+      }
+    } catch(e) {}
     return segs;
   }
 
@@ -447,7 +493,7 @@
 
   var shadow = host.attachShadow({ mode: 'closed' });
   var tpl = document.createElement('template');
-  tpl.innerHTML = '<style>*,*::before,*::after{box-sizing:border-box}#overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;cursor:crosshair;pointer-events:auto}#dialog{position:fixed;bottom:20px;right:20px;min-width:190px;max-width:420px;background:#fff;border-radius:10px;box-shadow:0 4px 24px rgba(0,0,0,.25),0 1px 4px rgba(0,0,0,.1);overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;font-size:13px;color:#1e293b;pointer-events:auto;z-index:1;transition:width .12s ease}#dialog.closing{animation:ctp-fadeOut .25s ease forwards}#dialog-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#1E3A5F;color:#FFD700;font-weight:600;font-size:13px;cursor:move;user-select:none;white-space:nowrap}#el-info{font-size:11px;font-weight:400;opacity:.85;overflow:hidden;text-overflow:ellipsis;margin:0 8px;flex:1;text-align:center;white-space:nowrap}#quitBtn{background:none;border:none;color:#FFD700;font-size:20px;cursor:pointer;padding:0 4px;line-height:1;opacity:.7;flex-shrink:0}#quitBtn:hover{opacity:1}#path-display{padding:12px 14px;font-family:SF Mono,Cascadia Code,Fira Code,Menlo,Consolas,monospace;font-size:12px;color:#1e293b;background:#f8fafc;border-bottom:1px solid #e2e8f0;word-break:break-all;line-height:1.5;min-height:40px;max-height:120px;overflow-y:auto;white-space:pre-wrap}#dialog-actions{padding:10px 14px;display:flex;justify-content:flex-end;gap:8px}.primary{padding:7px 18px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;background:#1E3A5F;color:#FFD700;transition:background .15s}.primary:hover{background:#2a5070}.primary:active{background:#16304a}.primary.copied{background:#22c55e}#format-select{font-size:11px;padding:3px 6px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;color:#1e293b;font-family:inherit;cursor:pointer;outline:none}#overlay.frozen{cursor:default}#dialog.frozen{border:2px solid #22c55e}@media(prefers-color-scheme:dark){#dialog{background:#1e293b;color:#e2e8f0}#path-display{background:#0f172a;color:#e2e8f0;border-bottom-color:#334155}.primary{background:#4A90D9;color:#fff}.primary:hover{background:#3b78c0}.primary:active{background:#2d5fa0}#format-select{background:#0f172a;color:#e2e8f0;border-color:#334155}#dialog.frozen{border-color:#22c55e}}.p-url{color:#1d4ed8}.p-sep{color:#475569}.p-corner{color:#92400e}.p-zindex{color:#6d28d9}.p-ctx_key{color:#047857}.p-ctx_str{color:#065f46}.p-ctx_flag{color:#9f1239}.p-path_tid{color:#991b1b}.p-sep_path{color:#15803d}.p-br_open,.p-br_close{color:#92400e}.p-ctx_open,.p-ctx_close{color:#047857}@media(prefers-color-scheme:dark){.p-url{color:#93c5fd}.p-sep{color:#e2e8f0}.p-corner{color:#fde68a}.p-zindex{color:#ddd6fe}.p-ctx_key{color:#6ee7b7}.p-ctx_str{color:#a7f3d0}.p-ctx_flag{color:#fecdd3}.p-path_tid{color:#fca5a5}.p-sep_path{color:#86efac}.p-br_open,.p-br_close{color:#fde68a}.p-ctx_open,.p-ctx_close{color:#6ee7b7}.nav-btn{display:none;padding:5px 10px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;color:#1e293b;font-size:12px;cursor:pointer;transition:all .15s}.nav-btn:hover{background:#f1f5f9;border-color:#cbd5e1}.nav-btn:disabled{opacity:.4;cursor:not-allowed}}</style><svg id="overlay" xmlns="http://www.w3.org/2000/svg"><path id="ocean" fill="rgba(0,0,0,0.4)" fill-rule="evenodd" d=""/><path id="island" fill="rgba(255,215,0,0.2)" stroke="#FFD700" stroke-width="2" d=""/></svg><div id="dialog"><div id="dialog-header"><span>Element picker</span><span id="el-info"></span><button id="quitBtn" title="Quit">&times;</button></div><div id="path-display">Hover over an element...</div><div id="dialog-actions"><button id="stepBackBtn" class="nav-btn" title="Step Back">To Child</button><button id="stepNextBtn" class="nav-btn" title="Step Next">To Parent</button><select id="format-select"><option value="context">Context</option><option value="xpath">XPath</option><option value="css">CSS</option><option value="pw">Playwright</option></select><button id="copyBtn" class="primary">Copy path</button></div><div id="freeze-hint" style="padding:6px 14px;font-size:11px;color:#64748b;text-align:center;border-top:1px solid #e2e8f0;">Right-click to freeze for precise navigation</div></div>';
+  tpl.innerHTML = '<style>*,*::before,*::after{box-sizing:border-box}#overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;cursor:crosshair;pointer-events:auto}#dialog{position:fixed;bottom:20px;right:20px;min-width:190px;max-width:420px;background:#fff;border-radius:10px;box-shadow:0 4px 24px rgba(0,0,0,.25),0 1px 4px rgba(0,0,0,.1);overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;font-size:13px;color:#1e293b;pointer-events:auto;z-index:1;transition:width .12s ease}#dialog.closing{animation:ctp-fadeOut .25s ease forwards}#dialog-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#1E3A5F;color:#FFD700;font-weight:600;font-size:13px;cursor:move;user-select:none;white-space:nowrap}#el-info{font-size:11px;font-weight:400;opacity:.85;overflow:hidden;text-overflow:ellipsis;margin:0 8px;flex:1;text-align:center;white-space:nowrap}#quitBtn{background:none;border:none;color:#FFD700;font-size:20px;cursor:pointer;padding:0 4px;line-height:1;opacity:.7;flex-shrink:0}#quitBtn:hover{opacity:1}#path-display{padding:12px 14px;font-family:SF Mono,Cascadia Code,Fira Code,Menlo,Consolas,monospace;font-size:12px;color:#1e293b;background:#f8fafc;border-bottom:1px solid #e2e8f0;word-break:break-all;line-height:1.5;min-height:40px;max-height:120px;overflow-y:auto;white-space:pre-wrap}#dialog-actions{padding:10px 14px;display:flex;justify-content:flex-end;gap:8px}.primary{padding:7px 18px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;background:#1E3A5F;color:#FFD700;transition:background .15s}.primary:hover{background:#2a5070}.primary:active{background:#16304a}.primary.copied{background:#22c55e}#format-select{font-size:11px;padding:3px 6px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;color:#1e293b;font-family:inherit;cursor:pointer;outline:none}#overlay.frozen{cursor:default}#dialog.frozen{border:2px solid #22c55e}@media(prefers-color-scheme:dark){#dialog{background:#1e293b;color:#e2e8f0}#path-display{background:#0f172a;color:#e2e8f0;border-bottom-color:#334155}.primary{background:#4A90D9;color:#fff}.primary:hover{background:#3b78c0}.primary:active{background:#2d5fa0}#format-select{background:#0f172a;color:#e2e8f0;border-color:#334155}#dialog.frozen{border-color:#22c55e}}.p-url{color:#1d4ed8}.p-sep{color:#475569}.p-corner{color:#92400e}.p-zindex{color:#6d28d9}.p-ctx_key{color:#047857}.p-ctx_str{color:#065f46}.p-ctx_flag{color:#9f1239}.p-path_tid{color:#991b1b}.p-sep_path{color:#15803d}.p-br_open,.p-br_close{color:#92400e}.p-ctx_open,.p-ctx_close{color:#047857}@media(prefers-color-scheme:dark){.p-url{color:#93c5fd}.p-sep{color:#e2e8f0}.p-corner{color:#fde68a}.p-zindex{color:#ddd6fe}.p-ctx_key{color:#6ee7b7}.p-ctx_str{color:#a7f3d0}.p-ctx_flag{color:#fecdd3}.p-path_tid{color:#fca5a5}.p-sep_path{color:#86efac}.p-br_open,.p-br_close{color:#fde68a}.p-ctx_open,.p-ctx_close{color:#6ee7b7}.nav-btn{display:none;padding:5px 10px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;color:#1e293b;font-size:12px;cursor:pointer;transition:all .15s}.nav-btn:hover{background:#f1f5f9;border-color:#cbd5e1}.nav-btn:disabled{opacity:.4;cursor:not-allowed}#configBtn{display:inline-flex;align-items:center;justify-content:center;min-width:32px;}#config-panel .preset-btn{font-size:11px;padding:3px 8px;border:1px solid #334155;border-radius:999px;background:#1e293b;color:#e2e8f0;cursor:pointer}#config-panel .preset-btn:hover{background:#334155} #config-checks label{color:#e2e8f0} #config-checks input{accent-color:#38bdf8}</style><svg id="overlay" xmlns="http://www.w3.org/2000/svg"><path id="ocean" fill="rgba(0,0,0,0.4)" fill-rule="evenodd" d=""/><path id="island" fill="rgba(255,215,0,0.2)" stroke="#FFD700" stroke-width="2" d=""/></svg><div id="dialog"><div id="dialog-header"><span>Element picker</span><span id="el-info"></span><button id="quitBtn" title="Quit">&times;</button></div><div id="path-display">Hover over an element...</div><div id="dialog-actions"><button id="stepBackBtn" class="nav-btn" title="Step Back">To Child</button><button id="stepNextBtn" class="nav-btn" title="Step Next">To Parent</button><select id="format-select"><option value="context">Context</option><option value="xpath">XPath</option><option value="css">CSS</option><option value="pw">Playwright</option></select><button id="configBtn" class="nav-btn" title="Pick computed style props">⚙</button><button id="copyBtn" class="primary">Copy path</button></div><div id="config-panel" style="display:none;padding:12px 14px;background:#0f172a;border-top:1px solid #1e293b;max-height:240px;overflow-y:auto;color:#e2e8f0;"><div style="font-weight:600;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;color:#f1f5f9;">Computed props <span id="config-close" style="cursor:pointer;font-size:18px;line-height:1;color:#94a3b8;">×</span></div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;"><button class="preset-btn" data-preset="color">color only</button><button class="preset-btn" data-preset="essentials">essentials</button><button class="preset-btn" data-preset="typography">typography</button><button class="preset-btn" data-preset="box">box</button><button class="preset-btn" data-preset="all">all</button><button class="preset-btn" data-preset="clear">clear</button></div><div id="config-checks" style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:12px;margin-bottom:8px;color:#e2e8f0;"></div><div style="font-size:11px;color:#94a3b8;margin-bottom:4px;">Custom (comma-separated, overrides checks if non-empty):</div><textarea id="config-custom" rows="2" style="width:100%;font:11px monospace;padding:6px;border:1px solid #334155;border-radius:4px;resize:vertical;background:#1e293b;color:#e2e8f0;" placeholder="e.g. color, background-color, font-size"></textarea><div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px;"><button id="config-cancel" class="nav-btn">Cancel</button><button id="config-save" class="primary" style="padding:5px 12px;font-size:12px;">Save</button></div><div style="font-size:10px;color:#64748b;margin-top:6px;">Saved in localStorage, used for computed="..."</div></div><div id="freeze-hint" style="padding:6px 14px;font-size:11px;color:#64748b;text-align:center;border-top:1px solid #e2e8f0;">Right-click to freeze • ⚙ to pick computed props</div></div>';
   shadow.appendChild(tpl.content.cloneNode(true));
 
   document.documentElement.appendChild(host);
@@ -468,6 +514,113 @@
   var formatMode = 'context';
   var frozen = false;
   formatSelect.addEventListener('change', function() { formatMode = this.value; });
+
+  // ── Computed props config (localStorage) ──────────────────────────
+  var CFG_KEY = 'ctp-lite-computed-props';
+  var AVAILABLE_PROPS = ['color','background-color','background-image','border','border-radius','box-shadow','display','position','width','height','font-family','font-size','font-weight','line-height','letter-spacing','text-align','opacity','visibility','overflow','margin','padding','gap','flex','flex-direction','justify-content','align-items','grid','cursor','transform','transition','animation'];
+  var PRESETS = {
+    color: ['color','background-color'],
+    essentials: ['color','background-color','font-size','font-family','display','width','height','border-radius','box-shadow'],
+    typography: ['color','font-family','font-size','font-weight','line-height','letter-spacing','text-align'],
+    box: ['display','width','height','margin','padding','border','border-radius','box-sizing'],
+    all: null,
+    clear: []
+  };
+  function loadCfg(){
+    try{
+      var raw = localStorage.getItem(CFG_KEY);
+      if(raw){
+        var arr = JSON.parse(raw);
+        if(Array.isArray(arr)) return arr;
+        if(typeof raw==='string' && raw.trim()) return raw.split(',').map(function(s){return s.trim()}).filter(Boolean);
+      }
+    }catch(e){}
+    return [];
+  }
+  function saveCfg(arr){
+    try{ localStorage.setItem(CFG_KEY, JSON.stringify(arr)); }catch(e){}
+  }
+  var cfgProps = loadCfg();
+
+  var configBtn = shadow.querySelector('#configBtn');
+  var configPanel = shadow.querySelector('#config-panel');
+  var configClose = shadow.querySelector('#config-close');
+  var configCancel = shadow.querySelector('#config-cancel');
+  var configSave = shadow.querySelector('#config-save');
+  var configChecks = shadow.querySelector('#config-checks');
+  var configCustom = shadow.querySelector('#config-custom');
+
+  function renderChecks(){
+    configChecks.innerHTML = '';
+    var customVal = configCustom.value.trim();
+    var active = customVal ? customVal.split(',').map(function(s){return s.trim()}).filter(Boolean) : cfgProps;
+    // if preset all -> treat as all available
+    var isAll = cfgProps.length===AVAILABLE_PROPS.length || (cfgProps.length===1 && cfgProps[0]==='*');
+    AVAILABLE_PROPS.forEach(function(prop){
+      var label = document.createElement('label');
+      label.style.cssText='display:flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;';
+      var cb = document.createElement('input');
+      cb.type='checkbox'; cb.value=prop;
+      cb.checked = isAll ? true : active.indexOf(prop)!==-1;
+      cb.addEventListener('change', function(){ configCustom.value=''; });
+      label.appendChild(cb);
+      label.appendChild(document.createTextNode(prop));
+      configChecks.appendChild(label);
+    });
+    if(!customVal) configCustom.placeholder = cfgProps.join(', ');
+  }
+  var cfgSnapshot = null;
+  function openConfig(){
+    cfgSnapshot = cfgProps.slice();
+    configCustom.value = '';
+    renderChecks();
+    configPanel.style.display='block';
+    freezeHint.style.display='none';
+  }
+  function closeConfig(){ configPanel.style.display='none'; freezeHint.style.display='block'; }
+  function cancelConfig(){
+    if(cfgSnapshot) cfgProps = cfgSnapshot.slice();
+    closeConfig();
+    if(currentEl){ var el=currentEl; currentEl=null; updateUI(el); }
+  }
+  function collectProps(){
+    var custom = configCustom.value.trim();
+    if(custom) return custom.split(',').map(function(s){return s.trim()}).filter(Boolean);
+    var out=[]; configChecks.querySelectorAll('input:checked').forEach(function(cb){ out.push(cb.value); });
+    return out;
+  }
+  function liveUpdate(){
+    var live = collectProps();
+    cfgProps = live;
+    // live reflect without persisting until Save, but update preview immediately
+    if(currentEl) { var el=currentEl; currentEl=null; updateUI(el); }
+  }
+  if(configBtn) configBtn.addEventListener('click', function(e){ e.stopPropagation(); if(configPanel.style.display==='none' || !configPanel.style.display) openConfig(); else closeConfig(); if(currentEl) updateUI(currentEl); });
+  if(configClose) configClose.addEventListener('click', cancelConfig);
+  if(configCancel) configCancel.addEventListener('click', cancelConfig);
+  if(configSave) configSave.addEventListener('click', function(){
+    cfgProps = collectProps();
+    if(cfgProps.length===AVAILABLE_PROPS.length) cfgProps = AVAILABLE_PROPS.slice();
+    saveCfg(cfgProps);
+    closeConfig();
+    if(currentEl) { currentEl=null; updateUI(document.elementFromPoint(lastX||0, lastY||0) || document.body); }
+    showToast('Saved ' + cfgProps.length + ' props');
+  });
+  shadow.querySelectorAll('.preset-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var p = this.getAttribute('data-preset');
+      if(p==='all'){ configCustom.value=''; configChecks.querySelectorAll('input').forEach(function(cb){cb.checked=true;}); }
+      else if(p==='clear'){ configCustom.value=''; configChecks.querySelectorAll('input').forEach(function(cb){cb.checked=false;}); }
+      else if(PRESETS[p]){ configCustom.value=''; var set=PRESETS[p]; configChecks.querySelectorAll('input').forEach(function(cb){cb.checked=set.indexOf(cb.value)!==-1;}); }
+      liveUpdate();
+    });
+  });
+  // live reflect on change
+  if(configChecks) configChecks.addEventListener('change', liveUpdate);
+  if(configCustom) configCustom.addEventListener('input', liveUpdate);
+  // expose for tests
+  window.__ctp_cfg = { get: function(){ return cfgProps.slice(); }, set: function(a){ cfgProps=a; saveCfg(a); } };
+
 
   // Highlight overlay
   var hlEl = document.createElement('div');
