@@ -599,7 +599,7 @@
   }
   function closeConfig(){ configPanel.style.display='none'; freezeHint.style.display='block'; }
   function cancelConfig(){
-    if(cfgSnapshot) cfgProps = cfgSnapshot.slice();
+    if(cfgSnapshot) { cfgProps = cfgSnapshot.slice(); try{ localStorage.setItem(CFG_KEY, JSON.stringify(cfgProps)); }catch(e){} }
     closeConfig();
     if(currentEl){ var el=currentEl; currentEl=null; updateUI(el); }
   }
@@ -612,7 +612,7 @@
   function liveUpdate(){
     var live = collectProps();
     cfgProps = live;
-    // live reflect without persisting until Save, but update preview immediately
+    try{ localStorage.setItem(CFG_KEY, JSON.stringify(cfgProps)); }catch(e){}
     if(currentEl) { var el=currentEl; currentEl=null; updateUI(el); }
   }
   if(configBtn) configBtn.addEventListener('click', function(e){ e.stopPropagation(); if(configPanel.style.display==='none' || !configPanel.style.display) openConfig(); else closeConfig(); if(currentEl) updateUI(currentEl); });
