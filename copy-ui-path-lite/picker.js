@@ -327,7 +327,7 @@
     try {
       var cfg = (typeof cfgProps !== 'undefined' && cfgProps) ? cfgProps : [];
       if(!cfg || !cfg.length) { try{ var _r=localStorage.getItem('ctp-lite-computed-props'); if(_r) cfg=JSON.parse(_r); }catch(e){} }
-      if(!cfg || !cfg.length) { /* no config -> original context */ }
+      if(!cfg || !cfg.length) { cfg = ['color','background-color','background-image']; }
       else {
         var cs = window.getComputedStyle(el);
         segs.push({ type: PART.CTX_KEY, value: ', computed' });
@@ -555,7 +555,7 @@
         if(typeof raw==='string' && raw.trim()) return raw.split(',').map(function(s){return s.trim()}).filter(Boolean);
       }
     }catch(e){}
-    return [];
+    return ['color','background-color','background-image'];
   }
   function saveCfg(arr){
     try{ localStorage.setItem(CFG_KEY, JSON.stringify(arr)); }catch(e){}
