@@ -262,6 +262,15 @@
     var r = +m[1], g = +m[2], b = +m[3];
     return '#' + [r, g, b].map(function(x){ return x.toString(16).padStart(2,'0'); }).join('');
   }
+  var COLOR_PROPS = ['color','background-color','border-color','border-top-color','border-right-color','border-bottom-color','border-left-color','outline-color','text-decoration-color','column-rule-color','caret-color','fill','stroke','flood-color','lighting-color','stop-color','accent-color'];
+  function extractColor(val){
+    if(!val) return null;
+    var m = val.match(/rgba?\([^)]+\)|hsla?\([^)]+\)|#[0-9a-fA-F]{3,8}\b/);
+    if(m) return m[0];
+    // named colors fallback: if single word color
+    if(/^[a-z]+$/i.test(val.trim()) && val.trim().toLowerCase()!=='none' && val.trim().toLowerCase()!=='transparent') return val.trim();
+    return null;
+  }
   function buildContextParts(el) {
     var segs = [];
     var text = (el.textContent || '').trim().replace(/\s+/g, ' ');
@@ -339,21 +348,36 @@
           if (!val || val==='none') continue;
           if (!first) segs.push({ type: PART.CTX_STR, value: '; ' });
           first = false;
-          if(prop==='color'){
+          // color props get hex for readability + swatch
+          if(COLOR_PROPS.indexOf(prop)!==-1){
             var cRaw=val; var c= rgbToHex(cRaw) || cRaw;
+            // for hex conversion, if rgbToHex returns null (transparent) keep raw
+            if(c==='null' || c==null) c=cRaw;
             segs.push({ type: PART.CTX_STR, value: prop + ': ' + c });
-            if(cRaw && cRaw!=='rgba(0, 0, 0, 0)' && cRaw!=='transparent') segs.push({ type: PART.SWATCH, value: cRaw });
-            continue;
-          }
-          if(prop==='background-color'){
-            var bgRaw=val; var bg= rgbToHex(bgRaw) || bgRaw; if(bg==='null') bg=bgRaw;
-            segs.push({ type: PART.CTX_STR, value: 'background-color: ' + bg });
-            if(bgRaw && bgRaw!=='rgba(0, 0, 0, 0)' && bgRaw!=='transparent' && bgRaw!=='none') segs.push({ type: PART.SWATCH, value: bgRaw });
+            if(cRaw && cRaw!=='rgba(0, 0, 0, 0)' && cRaw!=='transparent' && cRaw!=='none') segs.push({ type: PART.SWATCH, value: cRaw });
             continue;
           }
           if(prop==='background-image'){
             segs.push({ type: PART.CTX_STR, value: prop + ': ' + val });
             if(val && val!=='none') segs.push({ type: PART.SWATCH, value: val });
+            continue;
+          }
+          if(prop==='background-color'){
+            var bgRaw=val; var bg= rgbToHex(bgRaw) || bgRaw; if(bg==='null' || bg==null) bg=bgRaw;
+            segs.push({ type: PART.CTX_STR, value: 'background-color: ' + bg });
+            if(bgRaw && bgRaw!=='rgba(0, 0, 0, 0)' && bgRaw!=='transparent' && bgRaw!=='none') segs.push({ type: PART.SWATCH, value: bgRaw });
+            continue;
+          }
+          if(prop==='box-shadow' || prop==='text-shadow'){
+            segs.push({ type: PART.CTX_STR, value: prop + ': ' + val });
+            var col = extractColor(val);
+            if(col) segs.push({ type: PART.SWATCH, value: col });
+            continue;
+          }
+          if(prop==='border'){
+            segs.push({ type: PART.CTX_STR, value: prop + ': ' + val });
+            var col2 = extractColor(val);
+            if(col2) segs.push({ type: PART.SWATCH, value: col2 });
             continue;
           }
           segs.push({ type: PART.CTX_STR, value: prop + ': ' + val });
@@ -537,7 +561,7 @@
 
   // ── Computed props config (localStorage) ──────────────────────────
   var CFG_KEY = 'ctp-lite-computed-props';
-  var AVAILABLE_PROPS = ['color','background-color','background-image','border','border-radius','box-shadow','display','position','width','height','font-family','font-size','font-weight','line-height','letter-spacing','text-align','opacity','visibility','overflow','margin','padding','gap','flex','flex-direction','justify-content','align-items','grid','cursor','transform','transition','animation'];
+  var AVAILABLE_PROPS = ['color','background-color','background-image','border-color','border-top-color','border-right-color','border-bottom-color','border-left-color','outline-color','text-decoration-color','column-rule-color','caret-color','fill','stroke','accent-color','box-shadow','text-shadow','border','border-radius','display','position','width','height','font-family','font-size','font-weight','line-height','letter-spacing','text-align','opacity','visibility','overflow','margin','padding','gap','flex','flex-direction','justify-content','align-items','grid','cursor','transform','transition','animation'];
   var PRESETS = {
     color: ['color','background-color'],
     essentials: ['color','background-color','font-size','font-family','display','width','height','border-radius','box-shadow'],
